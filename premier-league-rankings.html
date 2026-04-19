@@ -380,11 +380,55 @@
       gap: 12px;
     }
 
+    .board-card.maximized {
+      position: fixed;
+      inset: 12px;
+      z-index: 40;
+      padding: 18px 20px;
+      max-height: calc(100vh - 24px);
+    }
+
+    .board-card.maximized .board-scroll {
+      flex: 1 1 auto;
+      min-height: 0;
+    }
+
+    .board-card.scrolled-x .corner-cell,
+    .board-card.scrolled-x .side-label {
+      background:
+        linear-gradient(180deg, rgb(7 19 25 / calc(var(--cell-fill-alpha) + 0.22)), rgb(3 10 14 / calc(var(--cell-fill-alpha) + 0.34))),
+        rgb(4 14 18 / calc(var(--cell-fill-alpha) + 0.22));
+    }
+
+    .board-card-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
     .board-summary {
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
       align-items: center;
+      flex: 1 1 auto;
+    }
+
+    .icon-btn {
+      flex: 0 0 auto;
+      width: 42px;
+      height: 42px;
+      padding: 0;
+      border-radius: 12px;
+      font-size: 1.05rem;
+      line-height: 1;
+    }
+
+    .app-shell.has-maximized-board .hero,
+    .app-shell.has-maximized-board .status-card {
+      visibility: hidden;
+      pointer-events: none;
     }
 
     .board-scroll {
@@ -469,6 +513,9 @@
     }
 
     .corner-cell {
+      position: sticky;
+      left: 0;
+      z-index: 6;
       display: flex;
       align-items: flex-end;
       justify-content: space-between;
@@ -511,17 +558,44 @@
     }
 
     .side-label {
+      position: sticky;
+      left: 0;
+      z-index: 5;
       padding: 14px 16px;
       display: flex;
       align-items: center;
+      justify-content: space-between;
       gap: 12px;
       min-height: var(--row-height);
+      box-shadow: 10px 0 18px rgba(0, 0, 0, 0.16);
+    }
+
+    .side-main {
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex: 1 1 auto;
     }
 
     .side-label.active,
     .side-label.pinned {
       border-color: rgba(255, 255, 255, 0.22);
       background: rgb(9 27 35 / calc(var(--cell-fill-alpha) + 0.2));
+    }
+
+    .side-label.champion {
+      background:
+        linear-gradient(180deg, rgba(183, 240, 171, 0.28), rgba(78, 132, 82, 0.18)),
+        rgb(9 27 35 / calc(var(--cell-fill-alpha) + 0.16));
+      border-color: rgba(183, 240, 171, 0.28);
+    }
+
+    .side-label.relegated {
+      background:
+        linear-gradient(180deg, rgba(255, 186, 186, 0.26), rgba(171, 74, 74, 0.14)),
+        rgb(9 27 35 / calc(var(--cell-fill-alpha) + 0.16));
+      border-color: rgba(255, 186, 186, 0.24);
     }
 
     .team-chip {
@@ -550,6 +624,28 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+    }
+
+    .side-stats {
+      flex: 0 0 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 2px;
+      text-align: right;
+      line-height: 1.05;
+    }
+
+    .side-stat {
+      color: var(--muted);
+      font-size: 0.76rem;
+      white-space: nowrap;
+    }
+
+    .side-stat strong {
+      color: var(--text);
+      font-size: inherit;
+      font-weight: 700;
     }
 
     .rank-cell {
@@ -669,6 +765,14 @@
 
     .board-grid.compressed .side-meta span {
       font-size: 0.7rem;
+    }
+
+    .board-grid.compressed .side-stats {
+      gap: 1px;
+    }
+
+    .board-grid.compressed .side-stat {
+      font-size: 0.62rem;
     }
 
     .board-grid.compressed .week-header strong {
@@ -824,7 +928,10 @@
       </section>
 
       <section class="card board-card">
-        <div class="board-summary" id="board-summary"></div>
+        <div class="board-card-head">
+          <div class="board-summary" id="board-summary"></div>
+          <button class="icon-btn" id="maximize-board-btn" type="button" aria-label="Maximize results panel" title="Maximize results panel">⛶</button>
+        </div>
         <div class="board-scroll">
           <div class="board-stage" id="board-stage">
             <div class="empty-state" id="empty-state">
@@ -876,6 +983,7 @@
       const state = {
         seasonData: null,
         loading: false,
+        boardMaximized: false,
         highlightedTeam: null,
         pinnedTeams: new Set(),
         settings: loadSettings(),
@@ -909,17 +1017,23 @@
         messages: document.getElementById("messages"),
         boardStage: document.getElementById("board-stage"),
         boardSummary: document.getElementById("board-summary"),
-        emptyState: document.getElementById("empty-state")
+        emptyState: document.getElementById("empty-state"),
+        boardCard: document.querySelector(".board-card"),
+        boardScroll: document.querySelector(".board-scroll"),
+        appShell: document.querySelector(".app-shell"),
+        maximizeBoardBtn: document.getElementById("maximize-board-btn")
       };
 
-      init();
+      void init();
 
-      function init() {
+      async function init() {
         populateSeasonOptions();
         bindControls();
         syncSettingsToControls();
+        applyBoardMaximizedState();
         renderStatus();
         renderBoard();
+        await maybeLoadCachedSeasonOnStart();
       }
 
       function bindControls() {
@@ -968,6 +1082,15 @@
           renderStatus();
           renderBoard();
         });
+
+        els.maximizeBoardBtn.addEventListener("click", () => {
+          state.boardMaximized = !state.boardMaximized;
+          applyBoardMaximizedState();
+        });
+
+        els.boardScroll.addEventListener("scroll", () => {
+          applyHorizontalScrollState();
+        }, { passive: true });
 
         els.loadSeasonBtn.addEventListener("click", () => runSeasonLoad({ forceSeason: false }));
         els.forceSeasonBtn.addEventListener("click", () => runSeasonLoad({ forceSeason: true }));
@@ -1314,6 +1437,7 @@
         const teamCatalog = new Map();
         let previousStandings = null;
         let latestWeekWithStandings = 0;
+        let actualStandingsWeek = 0;
         const degradedWeeks = [];
         const bundleInfo = {
           used: false,
@@ -1343,6 +1467,9 @@
           if (standingsFrame) {
             previousStandings = standingsFrame;
             latestWeekWithStandings = standingsFrame.week || latestWeekWithStandings || week;
+            if (!carriedForward) {
+              actualStandingsWeek = week;
+            }
           }
 
           const matchesFrame = liveMatches || (bundleWeek ? bundleWeek.matches : null);
@@ -1376,6 +1503,7 @@
         }
 
         const finalWeek = [...weekRecords].reverse().find((weekRecord) => weekRecord.rankingRows.length) || weekRecords[0];
+        const actualWeekRecord = actualStandingsWeek ? weekRecords[actualStandingsWeek - 1] : finalWeek;
         const finalOrder = finalWeek ? finalWeek.rankingRows.map((row) => row.team.abbr) : [];
 
         const teamFlows = finalOrder.map((teamAbbr) => ({
@@ -1397,6 +1525,8 @@
           teamCatalog,
           teamFlows,
           weekRecords,
+          actualStandingsWeek,
+          actualWeekRecord,
           finalWeek,
           degradedWeeks,
           bundleInfo
@@ -1711,14 +1841,29 @@
 
         seasonData.finalOrder.forEach((teamAbbr, rowIndex) => {
           const team = seasonData.teamCatalog.get(teamAbbr);
+          const currentRow = seasonData.actualWeekRecord && seasonData.actualWeekRecord.teamMap
+            ? seasonData.actualWeekRecord.teamMap.get(teamAbbr)
+            : (seasonData.finalWeek && seasonData.finalWeek.teamMap ? seasonData.finalWeek.teamMap.get(teamAbbr) : null);
+          const pointsDisplay = getTeamPointsDisplay(seasonData, teamAbbr);
+          const guaranteedOutcome = getGuaranteedOutcome(seasonData, teamAbbr);
           const label = document.createElement("div");
           label.className = "side-label";
+          if (guaranteedOutcome) {
+            label.classList.add(guaranteedOutcome);
+          }
           label.dataset.team = teamAbbr;
           label.innerHTML = `
-            <span class="team-chip" style="background:${colorForTeam(teamAbbr)}"></span>
-            <div class="side-meta">
-              <strong>#${rowIndex + 1} ${escapeHtml(teamAbbr)}</strong>
-              <span>${escapeHtml(team ? team.name : teamAbbr)}</span>
+            <div class="side-main">
+              <span class="team-chip" style="background:${colorForTeam(teamAbbr)}"></span>
+              <div class="side-meta">
+                <strong>#${rowIndex + 1} ${escapeHtml(teamAbbr)}</strong>
+                <span>${escapeHtml(team ? team.name : teamAbbr)}</span>
+              </div>
+            </div>
+            <div class="side-stats">
+              <div class="side-stat"><strong>${pointsDisplay.earned} / ${pointsDisplay.possible}</strong> pts</div>
+              <div class="side-stat">GD <strong>${formatSignedNumber(currentRow ? currentRow.goalDiff : 0)}</strong></div>
+              <div class="side-stat">GS <strong>${currentRow ? currentRow.goalsFor : 0}</strong></div>
             </div>
           `;
           boardGrid.appendChild(label);
@@ -1754,7 +1899,8 @@
             } else {
               cell.classList.add("rank-hover-target");
               cell.title = rankingRow.title;
-              cell.innerHTML = `
+              const hasResolvedResult = hasFixtureResult(rankingRow.fixtures);
+              cell.innerHTML = hasResolvedResult ? `
                 <div class="rank-topline">
                   <strong>${escapeHtml(rankingRow.team.abbr)}</strong>
                   <span class="badge">#${rankingRow.rank}</span>
@@ -1762,6 +1908,10 @@
                 <div class="rank-summary">
                   ${rankingRow.wins}-${rankingRow.draws}-${rankingRow.losses} · ${rankingRow.points} pts · GD ${rankingRow.goalDiff}
                 </div>
+                <div class="fixture-list">
+                  ${renderFixtureLines(rankingRow.fixtures, weekRecord.carriedForward)}
+                </div>
+              ` : `
                 <div class="fixture-list">
                   ${renderFixtureLines(rankingRow.fixtures, weekRecord.carriedForward)}
                 </div>
@@ -1795,6 +1945,7 @@
         positionCompressedHotspots(boardGrid);
         renderFlowOverlay(flowSvg, seasonData, boardGrid);
         applyHighlightState();
+        applyHorizontalScrollState();
 
         const sourceBits = [];
         sourceBits.push(`<span class="pill"><strong>Season</strong> ${escapeHtml(seasonData.label)}</span>`);
@@ -1986,12 +2137,14 @@
         if (ownScore !== null && opponentScore !== null && match.period !== "PreMatch") {
           const marker = ownScore > opponentScore ? "+" : (ownScore < opponentScore ? "-" : "=");
           return {
-            text: `${prefix} ${opponent.abbr} (${marker}${ownScore}:${opponentScore})`
+            text: `${prefix} ${opponent.abbr} (${marker}${ownScore}:${opponentScore})`,
+            hasResult: true
           };
         }
 
         return {
-          text: `${prefix} ${opponent.abbr}`
+          text: `${prefix} ${opponent.abbr}`,
+          hasResult: false
         };
       }
 
@@ -2004,11 +2157,13 @@
         if (ownScore !== null && opponentScore !== null && match.status !== "U") {
           const marker = ownScore > opponentScore ? "+" : (ownScore < opponentScore ? "-" : "=");
           return {
-            text: `${prefix} ${opponent.abbr} (${marker}${ownScore}:${opponentScore})`
+            text: `${prefix} ${opponent.abbr} (${marker}${ownScore}:${opponentScore})`,
+            hasResult: true
           };
         }
         return {
-          text: `${prefix} ${opponent.abbr}`
+          text: `${prefix} ${opponent.abbr}`,
+          hasResult: false
         };
       }
 
@@ -2016,7 +2171,7 @@
         const own = isHome ? match.teams[0] : match.teams[1];
         const opponent = isHome ? match.teams[1] : match.teams[0];
         if (!own || !own.team || !opponent || !opponent.team) {
-          return { text: "Fixture detail unavailable" };
+          return { text: "Fixture detail unavailable", hasResult: false };
         }
         const ownTeam = normalizeLegacyTeam(own.team);
         const opponentTeam = normalizeLegacyTeam(opponent.team);
@@ -2026,11 +2181,13 @@
         if (ownScore !== null && opponentScore !== null) {
           const marker = ownScore > opponentScore ? "+" : (ownScore < opponentScore ? "-" : "=");
           return {
-            text: `${prefix} ${opponentTeam.abbr} (${marker}${ownScore}:${opponentScore})`
+            text: `${prefix} ${opponentTeam.abbr} (${marker}${ownScore}:${opponentScore})`,
+            hasResult: true
           };
         }
         return {
-          text: `${prefix} ${opponentTeam.abbr}`
+          text: `${prefix} ${opponentTeam.abbr}`,
+          hasResult: false
         };
       }
 
@@ -2203,6 +2360,19 @@
         renderStatus();
       }
 
+      async function maybeLoadCachedSeasonOnStart() {
+        const seasonStartYear = Number(els.seasonSelect.value || state.settings.selectedSeason);
+        const cacheSummary = await summarizeCache(seasonStartYear);
+        state.cacheSummary = cacheSummary;
+        renderStatus();
+        if (!cacheSummary.recordCount) {
+          return;
+        }
+        state.boardMaximized = true;
+        applyBoardMaximizedState();
+        await runSeasonLoad({ forceSeason: false });
+      }
+
       function setLoading(isLoading) {
         state.loading = isLoading;
       }
@@ -2242,6 +2412,99 @@
         return BOARD;
       }
 
+      function getTeamPointsDisplay(seasonData, teamAbbr) {
+        const currentRow = seasonData.actualWeekRecord && seasonData.actualWeekRecord.teamMap
+          ? seasonData.actualWeekRecord.teamMap.get(teamAbbr)
+          : (seasonData.finalWeek && seasonData.finalWeek.teamMap ? seasonData.finalWeek.teamMap.get(teamAbbr) : null);
+        const earned = currentRow ? currentRow.points : 0;
+        const played = currentRow ? (currentRow.wins + currentRow.draws + currentRow.losses) : 0;
+        const remainingGames = Math.max(0, getSeasonMatchCount(seasonData.seasonStartYear) - played);
+        return {
+          earned,
+          possible: earned + (remainingGames * 3)
+        };
+      }
+
+      function getGuaranteedOutcome(seasonData, teamAbbr) {
+        const referenceWeek = seasonData && seasonData.actualWeekRecord && seasonData.actualWeekRecord.teamMap
+          ? seasonData.actualWeekRecord
+          : (seasonData && seasonData.finalWeek && seasonData.finalWeek.teamMap ? seasonData.finalWeek : null);
+        if (!referenceWeek) {
+          return "";
+        }
+        if (!seasonData.guaranteedOutcomeMap) {
+          seasonData.guaranteedOutcomeMap = computeGuaranteedOutcomes(seasonData);
+        }
+        return seasonData.guaranteedOutcomeMap.get(teamAbbr) || "";
+      }
+
+      function computeGuaranteedOutcomes(seasonData) {
+        const results = new Map();
+        const referenceWeek = seasonData.actualWeekRecord && seasonData.actualWeekRecord.teamMap
+          ? seasonData.actualWeekRecord
+          : seasonData.finalWeek;
+        if (!referenceWeek || !referenceWeek.teamMap) {
+          return results;
+        }
+        const seasonMatches = getSeasonMatchCount(seasonData.seasonStartYear);
+        const rows = seasonData.finalOrder
+          .map((teamAbbr) => referenceWeek.teamMap.get(teamAbbr))
+          .filter(Boolean)
+          .map((row) => {
+            const played = row.wins + row.draws + row.losses;
+            const remaining = Math.max(0, seasonMatches - played);
+            return {
+              teamAbbr: row.team.abbr,
+              currentPoints: row.points,
+              maxPoints: row.points + (remaining * 3)
+            };
+          });
+
+        const champion = rows.find((candidate) => rows.every((other) => {
+          if (other.teamAbbr === candidate.teamAbbr) {
+            return true;
+          }
+          return candidate.currentPoints > other.maxPoints;
+        }));
+        if (champion) {
+          results.set(champion.teamAbbr, "champion");
+        }
+
+        rows.forEach((candidate) => {
+          const teamsGuaranteedAbove = rows.filter((other) => {
+            if (other.teamAbbr === candidate.teamAbbr) {
+              return false;
+            }
+            return other.currentPoints > candidate.maxPoints;
+          }).length;
+          if (teamsGuaranteedAbove >= rows.length - 3) {
+            results.set(candidate.teamAbbr, "relegated");
+          }
+        });
+
+        return results;
+      }
+
+      function getSeasonMatchCount(seasonStartYear) {
+        return seasonStartYear <= 1994 ? 42 : 38;
+      }
+
+      function hasFixtureResult(fixtures) {
+        return Array.isArray(fixtures) && fixtures.some((fixture) => fixture && fixture.hasResult);
+      }
+
+      function applyBoardMaximizedState() {
+        els.boardCard.classList.toggle("maximized", Boolean(state.boardMaximized));
+        els.appShell.classList.toggle("has-maximized-board", Boolean(state.boardMaximized));
+        els.maximizeBoardBtn.textContent = state.boardMaximized ? "🗗" : "⛶";
+        els.maximizeBoardBtn.setAttribute("aria-label", state.boardMaximized ? "Restore results panel" : "Maximize results panel");
+        els.maximizeBoardBtn.setAttribute("title", state.boardMaximized ? "Restore results panel" : "Maximize results panel");
+      }
+
+      function applyHorizontalScrollState() {
+        els.boardCard.classList.toggle("scrolled-x", els.boardScroll.scrollLeft > 4);
+      }
+
       function getExpectedWeekCount(seasonStartYear) {
         const label = formatSeasonLabel(seasonStartYear);
         const bundled = BUNDLED_MANIFEST[label];
@@ -2267,6 +2530,11 @@
         }
         const hue = Math.abs(hash) % 360;
         return `hsl(${hue} 72% 60%)`;
+      }
+
+      function formatSignedNumber(value) {
+        const number = Number(value || 0);
+        return number > 0 ? `+${number}` : `${number}`;
       }
 
       function numberOrNull(value) {
