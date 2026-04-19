@@ -277,7 +277,7 @@
 
     .display-controls {
       display: grid;
-      grid-template-columns: repeat(2, minmax(220px, 320px));
+      grid-template-columns: repeat(auto-fit, minmax(220px, 320px));
       gap: 12px;
       align-items: start;
     }
@@ -299,6 +299,28 @@
       text-align: right;
       color: var(--text);
       font-size: 0.88rem;
+    }
+
+    .toggle-card {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--muted);
+      width: fit-content;
+    }
+
+    .toggle-card input {
+      margin: 0;
+    }
+
+    .toggle-card strong {
+      color: var(--text);
+      font-size: 0.9rem;
+      line-height: 1;
     }
 
     .message {
@@ -619,6 +641,76 @@
       letter-spacing: 0.07em;
     }
 
+    .board-grid.compressed .corner-cell {
+      min-height: 100%;
+      padding: 6px 10px;
+      border-radius: 14px;
+      align-items: center;
+    }
+
+    .board-grid.compressed .week-header {
+      min-height: 100%;
+      padding: 4px 2px;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      border-radius: 12px;
+    }
+
+    .board-grid.compressed .side-label {
+      min-height: 100%;
+      padding: 4px 10px;
+      border-radius: 14px;
+    }
+
+    .board-grid.compressed .side-meta strong {
+      font-size: 0.84rem;
+    }
+
+    .board-grid.compressed .side-meta span {
+      font-size: 0.7rem;
+    }
+
+    .board-grid.compressed .week-header strong {
+      font-size: 0.82rem;
+      line-height: 1;
+    }
+
+    .board-grid.compressed .week-header span {
+      display: none;
+    }
+
+    .board-grid.compressed .rank-cell {
+      padding: 0;
+      gap: 0;
+      border-color: transparent;
+      background: transparent;
+      backdrop-filter: none;
+      transform: none;
+      overflow: visible;
+    }
+
+    .board-grid.compressed .rank-cell.active,
+    .board-grid.compressed .rank-cell.pinned,
+    .board-grid.compressed .rank-cell.carried {
+      border-color: transparent;
+      background: transparent;
+    }
+
+    .rank-hotspot {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 12px;
+      height: 12px;
+      transform: translate(-50%, -50%);
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      background: transparent;
+      opacity: 1;
+      cursor: pointer;
+    }
+
     .empty-state {
       min-height: 300px;
       display: grid;
@@ -723,6 +815,10 @@
               <span class="range-value" id="cell-blur-value"></span>
             </div>
           </div>
+          <label class="toggle-card" for="compressed-mode-toggle">
+            <input id="compressed-mode-toggle" type="checkbox">
+            <strong>Compressed mode</strong>
+          </label>
         </div>
         <div class="messages" id="messages"></div>
       </section>
@@ -773,7 +869,8 @@
         enableHeaderOverrides: false,
         headerOverrideText: "",
         cellOpacityPercent: 34,
-        cellBlurPx: 4
+        cellBlurPx: 4,
+        compressedMode: false
       };
 
       const state = {
@@ -806,6 +903,7 @@
         cellOpacityValue: document.getElementById("cell-opacity-value"),
         cellBlurSlider: document.getElementById("cell-blur-slider"),
         cellBlurValue: document.getElementById("cell-blur-value"),
+        compressedModeToggle: document.getElementById("compressed-mode-toggle"),
         metaStrip: document.getElementById("meta-strip"),
         statusBar: document.getElementById("status-bar"),
         messages: document.getElementById("messages"),
@@ -864,6 +962,13 @@
           renderStatus();
         });
 
+        els.compressedModeToggle.addEventListener("change", () => {
+          state.settings.compressedMode = els.compressedModeToggle.checked;
+          saveSettings();
+          renderStatus();
+          renderBoard();
+        });
+
         els.loadSeasonBtn.addEventListener("click", () => runSeasonLoad({ forceSeason: false }));
         els.forceSeasonBtn.addEventListener("click", () => runSeasonLoad({ forceSeason: true }));
         els.reloadWeekBtn.addEventListener("click", () => runSeasonLoad({ forceWeeks: [getSelectedWeek()] }));
@@ -890,6 +995,7 @@
         els.headerJson.value = state.settings.headerOverrideText || "";
         els.cellOpacitySlider.value = String(clamp(Number(state.settings.cellOpacityPercent || 34), 0, 100));
         els.cellBlurSlider.value = String(clamp(Number(state.settings.cellBlurPx || 4), 0, 24));
+        els.compressedModeToggle.checked = Boolean(state.settings.compressedMode);
         applyVisualSettings();
       }
 
@@ -1539,6 +1645,7 @@
           `<span class="pill"><strong>Week</strong> ${getSelectedWeek()}</span>`,
           `<span class="pill"><strong>Cell Opacity</strong> ${clamp(Number(state.settings.cellOpacityPercent || 34), 0, 100)}%</span>`,
           `<span class="pill"><strong>Cell Blur</strong> ${clamp(Number(state.settings.cellBlurPx || 4), 0, 24)}px</span>`,
+          `<span class="pill"><strong>Compressed</strong> ${state.settings.compressedMode ? "on" : "off"}</span>`,
           `<span class="pill"><strong>Header Overrides</strong> ${state.settings.enableHeaderOverrides ? "enabled" : "off"}</span>`
         ].join("");
 
@@ -1571,26 +1678,34 @@
           return;
         }
 
-        const width = BOARD.labelWidth + (seasonData.weekCount * BOARD.weekWidth) + ((seasonData.weekCount - 1) * BOARD.columnGap);
-        const height = BOARD.headerHeight + (seasonData.teamCount * BOARD.rowHeight) + ((seasonData.teamCount - 1) * BOARD.rowGap);
+        const metrics = getBoardMetrics();
+        const width = metrics.labelWidth + (seasonData.weekCount * metrics.weekWidth) + (seasonData.weekCount * metrics.columnGap);
+        const height = metrics.headerHeight + (seasonData.teamCount * metrics.rowHeight) + (seasonData.teamCount * metrics.rowGap);
 
         const boardGrid = document.createElement("div");
         boardGrid.className = "board-grid";
-        boardGrid.style.gridTemplateColumns = `${BOARD.labelWidth}px repeat(${seasonData.weekCount}, ${BOARD.weekWidth}px)`;
-        boardGrid.style.gridTemplateRows = `${BOARD.headerHeight}px repeat(${seasonData.teamCount}, ${BOARD.rowHeight}px)`;
+        if (state.settings.compressedMode) {
+          boardGrid.classList.add("compressed");
+        }
+        boardGrid.style.gridTemplateColumns = `${metrics.labelWidth}px repeat(${seasonData.weekCount}, ${metrics.weekWidth}px)`;
+        boardGrid.style.gridTemplateRows = `${metrics.headerHeight}px repeat(${seasonData.teamCount}, ${metrics.rowHeight}px)`;
         boardGrid.style.width = `${width}px`;
         boardGrid.style.minHeight = `${height}px`;
 
         const corner = document.createElement("div");
         corner.className = "corner-cell";
-        corner.innerHTML = `<div><strong>${escapeHtml(seasonData.label)}</strong><span>Rows follow the latest available table.</span></div><span>${seasonData.teamCount} clubs</span>`;
+        corner.innerHTML = state.settings.compressedMode
+          ? `<div><strong>${escapeHtml(seasonData.label)}</strong></div>`
+          : `<div><strong>${escapeHtml(seasonData.label)}</strong><span>Rows follow the latest available table.</span></div><span>${seasonData.teamCount} clubs</span>`;
         boardGrid.appendChild(corner);
 
         for (let week = 1; week <= seasonData.weekCount; week += 1) {
           const weekRecord = seasonData.weekRecords[week - 1];
           const header = document.createElement("div");
           header.className = "week-header";
-          header.innerHTML = `<strong>Week ${week}</strong><span>${escapeHtml(weekHeaderCaption(weekRecord))}</span>`;
+          header.innerHTML = state.settings.compressedMode
+            ? `<strong>${week}</strong>`
+            : `<strong>Week ${week}</strong><span>${escapeHtml(weekHeaderCaption(weekRecord))}</span>`;
           boardGrid.appendChild(header);
         }
 
@@ -1613,29 +1728,45 @@
             const rankingRow = weekRecord.rankingRows[rowIndex];
             const cell = document.createElement("div");
             cell.className = "rank-cell";
+            cell.dataset.week = String(week);
             if (weekRecord.carriedForward) {
               cell.classList.add("carried");
             }
             if (!rankingRow) {
-              cell.innerHTML = `<div class="rank-caption">No data</div>`;
+              if (state.settings.compressedMode) {
+                cell.innerHTML = "";
+              } else {
+                cell.innerHTML = `<div class="rank-caption">No data</div>`;
+              }
               boardGrid.appendChild(cell);
               continue;
             }
 
             cell.dataset.team = rankingRow.team.abbr;
-            cell.title = rankingRow.title;
-            cell.innerHTML = `
-              <div class="rank-topline">
-                <strong>${escapeHtml(rankingRow.team.abbr)}</strong>
-                <span class="badge">#${rankingRow.rank}</span>
-              </div>
-              <div class="rank-summary">
-                ${rankingRow.wins}-${rankingRow.draws}-${rankingRow.losses} · ${rankingRow.points} pts · GD ${rankingRow.goalDiff}
-              </div>
-              <div class="fixture-list">
-                ${renderFixtureLines(rankingRow.fixtures, weekRecord.carriedForward)}
-              </div>
-            `;
+            if (state.settings.compressedMode) {
+              cell.innerHTML = `
+                <div
+                  class="rank-hotspot rank-hover-target"
+                  data-team="${escapeHtml(rankingRow.team.abbr)}"
+                  title="${escapeHtml(rankingRow.title)}"
+                  aria-label="${escapeHtml(rankingRow.title)}"></div>
+              `;
+            } else {
+              cell.classList.add("rank-hover-target");
+              cell.title = rankingRow.title;
+              cell.innerHTML = `
+                <div class="rank-topline">
+                  <strong>${escapeHtml(rankingRow.team.abbr)}</strong>
+                  <span class="badge">#${rankingRow.rank}</span>
+                </div>
+                <div class="rank-summary">
+                  ${rankingRow.wins}-${rankingRow.draws}-${rankingRow.losses} · ${rankingRow.points} pts · GD ${rankingRow.goalDiff}
+                </div>
+                <div class="fixture-list">
+                  ${renderFixtureLines(rankingRow.fixtures, weekRecord.carriedForward)}
+                </div>
+              `;
+            }
             boardGrid.appendChild(cell);
           }
         });
@@ -1645,29 +1776,6 @@
         flowSvg.setAttribute("width", String(width));
         flowSvg.setAttribute("height", String(height));
         flowSvg.setAttribute("viewBox", `0 0 ${width} ${height}`);
-
-        seasonData.teamFlows.forEach((flow) => {
-          const pathData = buildFlowPath(flow.points);
-          if (!pathData) {
-            return;
-          }
-          const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
-          group.setAttribute("class", "flow-team");
-          group.dataset.team = flow.teamAbbr;
-
-          const halo = document.createElementNS("http://www.w3.org/2000/svg", "path");
-          halo.setAttribute("class", "flow-halo");
-          halo.setAttribute("d", pathData);
-
-          const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-          path.setAttribute("class", "flow-path");
-          path.setAttribute("d", pathData);
-          path.setAttribute("stroke", flow.color);
-
-          group.appendChild(halo);
-          group.appendChild(path);
-          flowSvg.appendChild(group);
-        });
 
         const stage = document.createElement("div");
         stage.className = "board-stage";
@@ -1684,12 +1792,17 @@
         stage.id = "board-stage";
         els.boardStage = stage;
 
+        positionCompressedHotspots(boardGrid);
+        renderFlowOverlay(flowSvg, seasonData, boardGrid);
         applyHighlightState();
 
         const sourceBits = [];
         sourceBits.push(`<span class="pill"><strong>Season</strong> ${escapeHtml(seasonData.label)}</span>`);
         sourceBits.push(`<span class="pill"><strong>Rows</strong> ${seasonData.teamCount}</span>`);
         sourceBits.push(`<span class="pill"><strong>Columns</strong> ${seasonData.weekCount}</span>`);
+        if (state.settings.compressedMode) {
+          sourceBits.push(`<span class="pill"><strong>View</strong> compressed</span>`);
+        }
         if (seasonData.bundleInfo.used) {
           sourceBits.push(`<span class="pill"><strong>Fallback</strong> ${seasonData.bundleInfo.usedWeeks} bundle-assisted week(s)</span>`);
         }
@@ -1785,28 +1898,80 @@
         if (!target || !target.closest) {
           return null;
         }
-        const teamNode = target.closest(".rank-cell, .side-label");
+        const teamNode = target.closest(".rank-hover-target, .side-label");
         return teamNode ? teamNode.dataset.team : null;
       }
 
-      function buildFlowPath(points) {
+      function renderFlowOverlay(flowSvg, seasonData, boardGrid) {
+        flowSvg.replaceChildren();
+        seasonData.teamFlows.forEach((flow) => {
+          const pathData = buildFlowPath(flow.teamAbbr, flow.points, boardGrid);
+          if (!pathData) {
+            return;
+          }
+          const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+          group.setAttribute("class", "flow-team");
+          group.dataset.team = flow.teamAbbr;
+
+          const halo = document.createElementNS("http://www.w3.org/2000/svg", "path");
+          halo.setAttribute("class", "flow-halo");
+          halo.setAttribute("d", pathData);
+
+          const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+          path.setAttribute("class", "flow-path");
+          path.setAttribute("d", pathData);
+          path.setAttribute("stroke", flow.color);
+
+          group.appendChild(halo);
+          group.appendChild(path);
+          flowSvg.appendChild(group);
+        });
+      }
+
+      function positionCompressedHotspots(boardGrid) {
+        if (!state.settings.compressedMode) {
+          return;
+        }
+        const metrics = getBoardMetrics();
+        const yOffset = -(metrics.rowHeight / 2);
+        boardGrid.querySelectorAll(".rank-hotspot").forEach((hotspot) => {
+          const cell = hotspot.closest(".rank-cell");
+          if (!cell) {
+            return;
+          }
+          const top = (cell.offsetHeight / 2) + yOffset;
+          hotspot.style.top = `${top}px`;
+        });
+      }
+
+      function buildFlowPath(teamAbbr, points, boardGrid) {
         if (!points.length) {
           return "";
         }
-        const coords = points.map((point) => ({
-          x: BOARD.labelWidth + ((point.week - 1) * (BOARD.weekWidth + BOARD.columnGap)) + (BOARD.weekWidth / 2),
-          y: BOARD.headerHeight + ((point.rank - 1) * (BOARD.rowHeight + BOARD.rowGap)) + (BOARD.rowHeight / 2)
-        }));
-        if (!coords.length) {
+        const metrics = getBoardMetrics();
+        const yOffset = state.settings.compressedMode ? -(metrics.rowHeight / 2) : 0;
+        const anchors = points.map((point) => {
+          const cell = boardGrid.querySelector(`.rank-cell[data-team="${teamAbbr}"][data-week="${point.week}"]`);
+          if (!cell) {
+            return null;
+          }
+          return {
+            x: cell.offsetLeft + (cell.offsetWidth / 2),
+            y: cell.offsetTop + (cell.offsetHeight / 2) + yOffset,
+            width: cell.offsetWidth
+          };
+        }).filter(Boolean);
+        if (!anchors.length) {
           return "";
         }
 
-        let path = `M ${coords[0].x} ${coords[0].y}`;
-        for (let index = 1; index < coords.length; index += 1) {
-          const previous = coords[index - 1];
-          const current = coords[index];
-          const halfGap = (current.x - previous.x) / 2;
-          path += ` C ${previous.x + halfGap} ${previous.y}, ${current.x - halfGap} ${current.y}, ${current.x} ${current.y}`;
+        let path = `M ${anchors[0].x} ${anchors[0].y}`;
+        for (let index = 1; index < anchors.length; index += 1) {
+          const previous = anchors[index - 1];
+          const current = anchors[index];
+          const dx = current.x - previous.x;
+          const handle = Math.min(Math.abs(dx) * 0.42, Math.max(previous.width, current.width));
+          path += ` C ${previous.x + handle} ${previous.y}, ${current.x - handle} ${current.y}, ${current.x} ${current.y}`;
         }
         return path;
       }
@@ -2061,6 +2226,20 @@
       function detectCurrentSeasonStartYear() {
         const now = new Date();
         return now.getMonth() >= 6 ? now.getFullYear() : now.getFullYear() - 1;
+      }
+
+      function getBoardMetrics() {
+        if (state.settings.compressedMode) {
+          return {
+            ...BOARD,
+            weekWidth: 20,
+            headerHeight: 24,
+            rowHeight: 38,
+            rowGap: 0.9,
+            columnGap: 3.2
+          };
+        }
+        return BOARD;
       }
 
       function getExpectedWeekCount(seasonStartYear) {
