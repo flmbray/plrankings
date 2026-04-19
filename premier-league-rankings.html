@@ -1,0 +1,2265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Premier League Ranking Flow</title>
+  <style>
+    :root {
+      --bg: #07141a;
+      --bg-2: #0f232d;
+      --panel: rgba(8, 22, 29, 0.82);
+      --panel-strong: rgba(9, 29, 38, 0.94);
+      --line: rgba(166, 240, 226, 0.18);
+      --line-strong: rgba(166, 240, 226, 0.42);
+      --text: #edf7f2;
+      --muted: #a7c0bc;
+      --accent: #bdf271;
+      --accent-2: #82d6f3;
+      --danger: #ff7c75;
+      --warning: #f7d37d;
+      --shadow: 0 22px 50px rgba(0, 0, 0, 0.35);
+      --label-width: 220px;
+      --week-width: 188px;
+      --header-height: 72px;
+      --row-height: 86px;
+      --column-gap: 18px;
+      --row-gap: 12px;
+      --cell-fill-alpha: 0.34;
+      --cell-blur: 4px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      color: var(--text);
+      font-family: "Trebuchet MS", "Gill Sans", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(130, 214, 243, 0.16), transparent 36%),
+        radial-gradient(circle at top right, rgba(189, 242, 113, 0.14), transparent 30%),
+        linear-gradient(180deg, #081117 0%, #07141a 28%, #0a1d26 100%);
+      min-height: 100vh;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background:
+        linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+      background-size: 44px 44px, 44px 44px;
+      opacity: 0.22;
+      pointer-events: none;
+      mask-image: radial-gradient(circle at center, black 55%, transparent 95%);
+    }
+
+    .app-shell {
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      animation: shell-in 300ms ease-out;
+    }
+
+    @keyframes shell-in {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(260px, 1.2fr) minmax(280px, 1fr);
+      gap: 18px;
+    }
+
+    .card {
+      background: linear-gradient(180deg, rgba(15, 33, 41, 0.86), rgba(8, 18, 24, 0.9));
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+    }
+
+    .hero-copy {
+      padding: 26px 28px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-copy::after {
+      content: "";
+      position: absolute;
+      inset: auto -60px -80px auto;
+      width: 220px;
+      height: 220px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(189, 242, 113, 0.22), transparent 70%);
+      pointer-events: none;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #d7f6de;
+      background: rgba(189, 242, 113, 0.14);
+      border: 1px solid rgba(189, 242, 113, 0.22);
+    }
+
+    h1 {
+      margin: 18px 0 12px;
+      font-family: "Palatino Linotype", "Book Antiqua", serif;
+      font-size: clamp(2rem, 4vw, 3.25rem);
+      line-height: 0.96;
+      letter-spacing: -0.03em;
+    }
+
+    .hero-copy p {
+      max-width: 70ch;
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: 1rem;
+    }
+
+    .control-card {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .control-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .field label {
+      font-size: 0.84rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+    }
+
+    select,
+    textarea,
+    button {
+      font: inherit;
+    }
+
+    select,
+    textarea {
+      width: 100%;
+      border-radius: 14px;
+      border: 1px solid rgba(166, 240, 226, 0.22);
+      background: rgba(4, 14, 18, 0.76);
+      color: var(--text);
+      padding: 12px 14px;
+      resize: vertical;
+      outline: none;
+      transition: border-color 140ms ease, transform 140ms ease;
+    }
+
+    select:focus,
+    textarea:focus {
+      border-color: rgba(130, 214, 243, 0.72);
+      transform: translateY(-1px);
+    }
+
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    button {
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(10, 23, 30, 0.86);
+      color: var(--text);
+      border-radius: 999px;
+      padding: 11px 16px;
+      cursor: pointer;
+      transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+    }
+
+    button:hover:not(:disabled),
+    button:focus-visible:not(:disabled) {
+      transform: translateY(-1px);
+      border-color: rgba(130, 214, 243, 0.5);
+      background: rgba(19, 42, 54, 0.96);
+    }
+
+    button:disabled {
+      cursor: progress;
+      opacity: 0.62;
+    }
+
+    .btn-primary {
+      border-color: rgba(189, 242, 113, 0.35);
+      background: linear-gradient(180deg, rgba(141, 203, 55, 0.18), rgba(34, 52, 17, 0.52));
+    }
+
+    .btn-danger {
+      border-color: rgba(255, 124, 117, 0.28);
+      color: #ffd6d0;
+    }
+
+    .btn-subtle {
+      color: var(--muted);
+    }
+
+    .meta-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .pill {
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 0.86rem;
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .pill strong {
+      color: var(--text);
+    }
+
+    .layout {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .status-card,
+    .board-card {
+      padding: 18px 20px;
+    }
+
+    .status-card {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .status-bar {
+      min-height: 28px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .display-controls {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(220px, 320px));
+      gap: 12px;
+      align-items: start;
+    }
+
+    .range-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .range-wrap input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent-2);
+      cursor: pointer;
+    }
+
+    .range-value {
+      min-width: 52px;
+      text-align: right;
+      color: var(--text);
+      font-size: 0.88rem;
+    }
+
+    .message {
+      padding: 12px 14px;
+      border-radius: 16px;
+      border: 1px solid transparent;
+      line-height: 1.45;
+      white-space: pre-wrap;
+    }
+
+    .message.info {
+      background: rgba(130, 214, 243, 0.12);
+      border-color: rgba(130, 214, 243, 0.22);
+    }
+
+    .message.warn {
+      background: rgba(247, 211, 125, 0.12);
+      border-color: rgba(247, 211, 125, 0.24);
+      color: #fff0c7;
+    }
+
+    .message.error {
+      background: rgba(255, 124, 117, 0.12);
+      border-color: rgba(255, 124, 117, 0.24);
+      color: #ffd6d0;
+    }
+
+    .messages {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .admin-panel {
+      display: none;
+      grid-template-columns: 1fr 220px;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .admin-panel.open {
+      display: grid;
+    }
+
+    .checkbox {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      padding-top: 6px;
+    }
+
+    .board-card {
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .board-summary {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .board-scroll {
+      overflow: auto;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      background:
+        linear-gradient(180deg, rgba(3, 12, 16, 0.65), rgba(3, 12, 16, 0.5)),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.025), transparent 120px);
+      padding: 18px;
+    }
+
+    .board-stage {
+      position: relative;
+      min-height: 320px;
+      width: max-content;
+    }
+
+    .flow-layer {
+      position: absolute;
+      inset: 0;
+      overflow: visible;
+      pointer-events: none;
+    }
+
+    .flow-team {
+      pointer-events: auto;
+      cursor: pointer;
+    }
+
+    .flow-halo {
+      fill: none;
+      stroke: rgba(255, 255, 255, 0);
+      stroke-width: 18;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      transition: stroke 140ms ease, stroke-width 140ms ease;
+    }
+
+    .flow-path {
+      fill: none;
+      stroke-width: 12;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      opacity: 0.48;
+      transition: opacity 140ms ease, stroke-width 140ms ease;
+      filter: drop-shadow(0 8px 10px rgba(0, 0, 0, 0.36));
+    }
+
+    .flow-team.active .flow-path,
+    .flow-team.pinned .flow-path {
+      opacity: 1;
+      stroke-width: 14;
+    }
+
+    .flow-team.active .flow-halo,
+    .flow-team.pinned .flow-halo {
+      stroke: rgba(255, 255, 255, 0.78);
+      stroke-width: 24;
+    }
+
+    .board-grid {
+      position: relative;
+      display: grid;
+      align-items: stretch;
+      gap: var(--row-gap) var(--column-gap);
+    }
+
+    .board-grid > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .corner-cell,
+    .week-header,
+    .side-label,
+    .rank-cell {
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      background: rgb(4 14 18 / var(--cell-fill-alpha));
+      backdrop-filter: blur(var(--cell-blur));
+    }
+
+    .corner-cell {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      padding: 16px 18px;
+      min-height: var(--header-height);
+      background:
+        linear-gradient(180deg, rgb(130 214 243 / 0.14), rgb(4 14 18 / var(--cell-fill-alpha))),
+        rgb(4 14 18 / var(--cell-fill-alpha));
+    }
+
+    .corner-cell strong {
+      display: block;
+      font-size: 1.1rem;
+    }
+
+    .corner-cell span {
+      color: var(--muted);
+      font-size: 0.86rem;
+    }
+
+    .week-header {
+      min-height: var(--header-height);
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      gap: 4px;
+      background:
+        linear-gradient(180deg, rgb(189 242 113 / 0.13), rgb(4 14 18 / calc(var(--cell-fill-alpha) + 0.1))),
+        rgb(4 14 18 / var(--cell-fill-alpha));
+    }
+
+    .week-header strong {
+      font-size: 1.08rem;
+    }
+
+    .week-header span {
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+
+    .side-label {
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-height: var(--row-height);
+    }
+
+    .side-label.active,
+    .side-label.pinned {
+      border-color: rgba(255, 255, 255, 0.22);
+      background: rgb(9 27 35 / calc(var(--cell-fill-alpha) + 0.2));
+    }
+
+    .team-chip {
+      width: 16px;
+      height: 16px;
+      border-radius: 999px;
+      flex: 0 0 auto;
+      box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.06);
+    }
+
+    .side-meta {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .side-meta strong {
+      font-size: 0.98rem;
+      line-height: 1.1;
+    }
+
+    .side-meta span {
+      color: var(--muted);
+      font-size: 0.8rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .rank-cell {
+      min-height: var(--row-height);
+      padding: 9px 12px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      overflow: hidden;
+      transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+      background:
+        linear-gradient(180deg, rgb(255 255 255 / 0.04), rgb(4 14 18 / calc(var(--cell-fill-alpha) + 0.04))),
+        rgb(4 14 18 / var(--cell-fill-alpha));
+    }
+
+    .rank-cell.active,
+    .rank-cell.pinned {
+      transform: translateY(-1px);
+      border-color: rgba(255, 255, 255, 0.18);
+      background:
+        linear-gradient(180deg, rgb(130 214 243 / 0.14), rgb(4 14 18 / calc(var(--cell-fill-alpha) + 0.16))),
+        rgb(4 14 18 / calc(var(--cell-fill-alpha) + 0.08));
+    }
+
+    .rank-cell.carried {
+      border-style: dashed;
+      border-color: rgba(247, 211, 125, 0.18);
+    }
+
+    .rank-topline {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .rank-topline strong {
+      font-size: 1rem;
+      line-height: 1;
+      letter-spacing: 0.02em;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 32px;
+      height: 26px;
+      padding: 0 9px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .rank-summary {
+      color: var(--muted);
+      font-size: 0.8rem;
+      line-height: 1.15;
+    }
+
+    .fixture-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      min-height: 0;
+    }
+
+    .fixture-line {
+      font-size: 0.82rem;
+      line-height: 1.08;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .fixture-line.muted {
+      color: var(--muted);
+    }
+
+    .rank-caption {
+      color: var(--muted);
+      font-size: 0.74rem;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+    }
+
+    .empty-state {
+      min-height: 300px;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      color: var(--muted);
+      padding: 36px 18px;
+    }
+
+    .empty-state strong {
+      display: block;
+      color: var(--text);
+      font-size: 1.2rem;
+      margin-bottom: 8px;
+    }
+
+    @media (max-width: 1080px) {
+      .hero {
+        grid-template-columns: 1fr;
+      }
+
+      .control-grid,
+      .display-controls,
+      .admin-panel.open {
+        grid-template-columns: 1fr;
+      }
+
+      .app-shell {
+        padding: 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <section class="hero">
+      <article class="card hero-copy">
+        <div class="eyebrow">Static Browser View</div>
+        <h1>Premier League Ranking Flow</h1>
+        <p>
+          Load a season on demand, track every club’s rise and fall week by week, and keep the data local in your browser.
+          Live API responses are cached by season, week, and endpoint, with admin controls to invalidate a single matchweek when the table is still moving.
+        </p>
+      </article>
+
+      <aside class="card control-card">
+        <div class="control-grid">
+          <div class="field">
+            <label for="season-select">Season</label>
+            <select id="season-select"></select>
+          </div>
+          <div class="field">
+            <label for="week-select">Matchweek Cache Control</label>
+            <select id="week-select"></select>
+          </div>
+        </div>
+
+        <div class="button-row">
+          <button class="btn-primary" id="load-season-btn">Load Season</button>
+          <button id="force-season-btn">Force Reload Season</button>
+          <button id="reload-week-btn">Reload Week</button>
+          <button id="force-week-btn">Force Reload Week</button>
+          <button class="btn-danger" id="invalidate-week-btn">Invalidate Week Cache</button>
+        </div>
+
+        <div class="button-row">
+          <button class="btn-subtle" id="reset-season-btn">Reset Season Cache</button>
+          <button class="btn-subtle" id="reset-all-btn">Reset All Cache</button>
+          <button class="btn-subtle" id="toggle-admin-btn">Advanced Headers</button>
+        </div>
+
+        <div class="meta-strip" id="meta-strip"></div>
+
+        <div class="admin-panel" id="admin-panel">
+          <div class="field">
+            <label for="header-json">Optional Request Headers</label>
+            <textarea id="header-json" rows="5" placeholder='{"x-pulse-application-name":"web","x-pulse-application-version":"v1.44.5"}'></textarea>
+          </div>
+          <label class="checkbox">
+            <input type="checkbox" id="enable-header-overrides">
+            <span>Enable overrides for live requests</span>
+          </label>
+        </div>
+      </aside>
+    </section>
+
+    <section class="layout">
+      <section class="card status-card">
+        <div class="status-bar" id="status-bar"></div>
+        <div class="display-controls">
+          <div class="field">
+            <label for="cell-opacity-slider">Fixture Box Opacity</label>
+            <div class="range-wrap">
+              <input id="cell-opacity-slider" type="range" min="0" max="100" step="1">
+              <span class="range-value" id="cell-opacity-value"></span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="cell-blur-slider">Fixture Box Blur</label>
+            <div class="range-wrap">
+              <input id="cell-blur-slider" type="range" min="0" max="24" step="1">
+              <span class="range-value" id="cell-blur-value"></span>
+            </div>
+          </div>
+        </div>
+        <div class="messages" id="messages"></div>
+      </section>
+
+      <section class="card board-card">
+        <div class="board-summary" id="board-summary"></div>
+        <div class="board-scroll">
+          <div class="board-stage" id="board-stage">
+            <div class="empty-state" id="empty-state">
+              <div>
+                <strong>No season loaded</strong>
+                Select a campaign and load it to render the ranking flowchart.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </section>
+  </div>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const APP_VERSION = "1.0.0";
+      const SETTINGS_KEY = "pl-ranking-flow-settings-v1";
+      const DB_NAME = "pl-ranking-flow-cache-v1";
+      const STORE_NAME = "responses";
+      const LIVE_STANDINGS = "live-standings";
+      const LIVE_MATCHES = "live-matches";
+      const LIVE_STANDINGS_BASE = "https://sdp-prem-prod.premier-league-prod.pulselive.com/api/v5/competitions/8/seasons";
+      const LIVE_MATCHES_BASE = "https://sdp-prem-prod.premier-league-prod.pulselive.com/api/v2/matches";
+      const DEFAULT_HEADERS = { accept: "application/json" };
+      const BOARD = {
+        labelWidth: 220,
+        weekWidth: 188,
+        headerHeight: 72,
+        rowHeight: 86,
+        columnGap: 18,
+        rowGap: 12,
+        padding: 0
+      };
+      const BUNDLED_MANIFEST = {"1992-1993":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json","38":"38.json"},"1993-1994":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json","38":"38.json","39":"39.json","40":"40.json"},"1994-1995":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json"},"1995-1996":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json","38":"38.json"},"1996-1997":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json","38":"38.json","39":"39.json","40":"40.json","41":"41.json"},"1997-1998":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json","38":"38.json"},"1998-1999":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json","38":"38.json","39":"39.json","40":"40.json"},"1999-2000":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json"},"2000-2001":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json","38":"38.json"},"2001-2002":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json","38":"38.json"},"2002-2003":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json","38":"38.json"},"2003-2004":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json"},"2004-2005":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json","38":"38.json","39":"39.json"},"2005-2006":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json","38":"38.json"},"2006-2007":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json","38":"38.json","39":"39.json"},"2007-2008":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json","38":"38.json","39":"39.json"},"2008-2009":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json","38":"38.json","39":"39.json"},"2009-2010":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json","38":"38.json"},"2010-2011":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json"},"2011-2012":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json"},"2012-2013":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json","38":"38.json","39":"39.json"},"2013-2014":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json","38":"38.json","39":"39.json","40":"40.json"},"2014-2015":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json","38":"38.json"},"2015-2016":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json","38":"38.json"},"2016-2017":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json","38":"38.json"},"2017-2018":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json","38":"38.json"},"2018-2019":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json","38":"38.json"},"2019-2020":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json","38":"38.json"},"2020-2021":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json","38":"38.json"},"2021-2022":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json","38":"38.json"},"2022-2023":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json","38":"38.json"},"2023-2024":{"1":"gameweek-12269.json","2":"gameweek-12270.json","3":"gameweek-12271.json","4":"gameweek-12272.json","5":"gameweek-12273.json","6":"gameweek-12274.json","7":"gameweek-12275.json","8":"gameweek-12276.json","9":"gameweek-12277.json","10":"gameweek-12278.json","11":"gameweek-12279.json","12":"gameweek-12280.json","13":"gameweek-12281.json","14":"gameweek-12282.json","15":"gameweek-12283.json","16":"gameweek-12284.json","17":"gameweek-12285.json","18":"gameweek-12286.json","19":"gameweek-12287.json","20":"gameweek-12288.json","21":"gameweek-12289.json","22":"gameweek-12290.json","23":"gameweek-12291.json","24":"gameweek-12292.json","25":"gameweek-12293.json","26":"gameweek-12294.json","27":"gameweek-12295.json","28":"gameweek-12296.json","29":"gameweek-12297.json","30":"gameweek-12298.json","31":"gameweek-12299.json","32":"gameweek-12300.json","33":"gameweek-12301.json","34":"gameweek-12302.json","35":"gameweek-12303.json","36":"gameweek-12304.json","37":"gameweek-12305.json","38":"gameweek-12306.json"},"2024-2025":{"1":"gameweekNumber-1.json","2":"gameweekNumber-2.json","3":"gameweekNumber-3.json","4":"gameweekNumber-4.json","5":"gameweekNumber-5.json","6":"gameweekNumber-6.json","7":"gameweekNumber-7.json","8":"gameweekNumber-8.json","9":"gameweekNumber-9.json","10":"gameweekNumber-10.json","11":"gameweekNumber-11.json","12":"gameweekNumber-12.json","13":"gameweekNumber-13.json","14":"gameweekNumber-14.json","15":"gameweekNumber-15.json","16":"gameweekNumber-16.json","17":"gameweekNumber-17.json","18":"gameweekNumber-18.json","19":"gameweekNumber-19.json","20":"gameweekNumber-20.json","21":"gameweekNumber-21.json","22":"gameweekNumber-22.json","23":"gameweekNumber-23.json","24":"gameweekNumber-24.json","25":"gameweekNumber-25.json","26":"gameweekNumber-26.json","27":"gameweekNumber-27.json","28":"gameweekNumber-28.json","29":"gameweekNumber-29.json","30":"gameweekNumber-30.json","31":"gameweekNumber-31.json","32":"gameweekNumber-32.json","33":"gameweekNumber-33.json","34":"gameweekNumber-34.json","35":"gameweekNumber-35.json","36":"gameweekNumber-36.json","37":"gameweekNumber-37.json","38":"gameweekNumber-38.json"}};
+
+      const defaultSettings = {
+        selectedSeason: detectCurrentSeasonStartYear(),
+        selectedWeek: 1,
+        enableHeaderOverrides: false,
+        headerOverrideText: "",
+        cellOpacityPercent: 34,
+        cellBlurPx: 4
+      };
+
+      const state = {
+        seasonData: null,
+        loading: false,
+        highlightedTeam: null,
+        pinnedTeams: new Set(),
+        settings: loadSettings(),
+        fetchProgress: null,
+        messages: [],
+        cacheSummary: null,
+        bundledSeasonCache: new Map()
+      };
+
+      const els = {
+        seasonSelect: document.getElementById("season-select"),
+        weekSelect: document.getElementById("week-select"),
+        loadSeasonBtn: document.getElementById("load-season-btn"),
+        forceSeasonBtn: document.getElementById("force-season-btn"),
+        reloadWeekBtn: document.getElementById("reload-week-btn"),
+        forceWeekBtn: document.getElementById("force-week-btn"),
+        invalidateWeekBtn: document.getElementById("invalidate-week-btn"),
+        resetSeasonBtn: document.getElementById("reset-season-btn"),
+        resetAllBtn: document.getElementById("reset-all-btn"),
+        toggleAdminBtn: document.getElementById("toggle-admin-btn"),
+        adminPanel: document.getElementById("admin-panel"),
+        enableHeaderOverrides: document.getElementById("enable-header-overrides"),
+        headerJson: document.getElementById("header-json"),
+        cellOpacitySlider: document.getElementById("cell-opacity-slider"),
+        cellOpacityValue: document.getElementById("cell-opacity-value"),
+        cellBlurSlider: document.getElementById("cell-blur-slider"),
+        cellBlurValue: document.getElementById("cell-blur-value"),
+        metaStrip: document.getElementById("meta-strip"),
+        statusBar: document.getElementById("status-bar"),
+        messages: document.getElementById("messages"),
+        boardStage: document.getElementById("board-stage"),
+        boardSummary: document.getElementById("board-summary"),
+        emptyState: document.getElementById("empty-state")
+      };
+
+      init();
+
+      function init() {
+        populateSeasonOptions();
+        bindControls();
+        syncSettingsToControls();
+        renderStatus();
+        renderBoard();
+      }
+
+      function bindControls() {
+        els.seasonSelect.addEventListener("change", () => {
+          state.settings.selectedSeason = Number(els.seasonSelect.value);
+          updateWeekSelect();
+          saveSettings();
+        });
+
+        els.weekSelect.addEventListener("change", () => {
+          state.settings.selectedWeek = Number(els.weekSelect.value);
+          saveSettings();
+        });
+
+        els.toggleAdminBtn.addEventListener("click", () => {
+          els.adminPanel.classList.toggle("open");
+        });
+
+        els.enableHeaderOverrides.addEventListener("change", () => {
+          state.settings.enableHeaderOverrides = els.enableHeaderOverrides.checked;
+          saveSettings();
+        });
+
+        els.headerJson.addEventListener("input", () => {
+          state.settings.headerOverrideText = els.headerJson.value;
+          saveSettings();
+        });
+
+        els.cellOpacitySlider.addEventListener("input", () => {
+          state.settings.cellOpacityPercent = Number(els.cellOpacitySlider.value);
+          applyVisualSettings();
+          saveSettings();
+          renderStatus();
+        });
+
+        els.cellBlurSlider.addEventListener("input", () => {
+          state.settings.cellBlurPx = Number(els.cellBlurSlider.value);
+          applyVisualSettings();
+          saveSettings();
+          renderStatus();
+        });
+
+        els.loadSeasonBtn.addEventListener("click", () => runSeasonLoad({ forceSeason: false }));
+        els.forceSeasonBtn.addEventListener("click", () => runSeasonLoad({ forceSeason: true }));
+        els.reloadWeekBtn.addEventListener("click", () => runSeasonLoad({ forceWeeks: [getSelectedWeek()] }));
+        els.forceWeekBtn.addEventListener("click", () => runSeasonLoad({ forceWeeks: [getSelectedWeek()], forceSeason: false, deleteWeeksFirst: [getSelectedWeek()] }));
+        els.invalidateWeekBtn.addEventListener("click", () => invalidateWeekAndReload(getSelectedWeek()));
+        els.resetSeasonBtn.addEventListener("click", () => resetSeasonCacheAndReload());
+        els.resetAllBtn.addEventListener("click", () => resetAllCacheAndReload());
+      }
+
+      function populateSeasonOptions() {
+        const availableYears = buildSeasonYears();
+        els.seasonSelect.innerHTML = availableYears.map((year) => {
+          const label = formatSeasonLabel(year);
+          return `<option value="${year}">${label}</option>`;
+        }).join("");
+        updateWeekSelect();
+      }
+
+      function syncSettingsToControls() {
+        els.seasonSelect.value = String(state.settings.selectedSeason);
+        updateWeekSelect();
+        els.weekSelect.value = String(clamp(state.settings.selectedWeek, 1, getExpectedWeekCount(state.settings.selectedSeason)));
+        els.enableHeaderOverrides.checked = state.settings.enableHeaderOverrides;
+        els.headerJson.value = state.settings.headerOverrideText || "";
+        els.cellOpacitySlider.value = String(clamp(Number(state.settings.cellOpacityPercent || 34), 0, 100));
+        els.cellBlurSlider.value = String(clamp(Number(state.settings.cellBlurPx || 4), 0, 24));
+        applyVisualSettings();
+      }
+
+      function updateWeekSelect() {
+        const season = Number(els.seasonSelect.value || state.settings.selectedSeason);
+        const maxWeeks = getExpectedWeekCount(season);
+        const selected = clamp(state.settings.selectedWeek, 1, maxWeeks);
+        state.settings.selectedWeek = selected;
+        els.weekSelect.innerHTML = Array.from({ length: maxWeeks }, (_, index) => {
+          const week = index + 1;
+          return `<option value="${week}">Week ${week}</option>`;
+        }).join("");
+        els.weekSelect.value = String(selected);
+      }
+
+      async function runSeasonLoad({ forceSeason = false, forceWeeks = [], deleteWeeksFirst = [] } = {}) {
+        if (state.loading) {
+          return;
+        }
+
+        const seasonStartYear = Number(els.seasonSelect.value);
+        state.settings.selectedSeason = seasonStartYear;
+        state.settings.selectedWeek = Number(els.weekSelect.value);
+        saveSettings();
+
+        setLoading(true);
+        state.highlightedTeam = null;
+        state.pinnedTeams.clear();
+        state.messages = [];
+        renderStatus();
+
+        try {
+          if (deleteWeeksFirst.length) {
+            for (const week of deleteWeeksFirst) {
+              await deleteWeekCache(seasonStartYear, week);
+            }
+          }
+
+          const seasonData = await loadSeasonData(seasonStartYear, {
+            forceSeason,
+            forceWeeks: new Set(forceWeeks)
+          });
+          state.seasonData = seasonData;
+          state.cacheSummary = await summarizeCache(seasonStartYear);
+
+          const notes = [];
+          if (seasonData.bundleInfo.used) {
+            notes.push({
+              type: "warn",
+              text: seasonData.bundleInfo.warning || `Bundled fallback filled ${seasonData.bundleInfo.usedWeeks} week(s).`
+            });
+          }
+          if (seasonData.bundleInfo.fileProtocolFallbackBlocked) {
+            notes.push({
+              type: "warn",
+              text: "Bundled fallback could not be fetched from file:// in this browser. Serve the page over HTTP if you want local Data/ fallback files."
+            });
+          }
+          if (seasonData.degradedWeeks.length) {
+            notes.push({
+              type: "warn",
+              text: `Some weeks are degraded. ${seasonData.degradedWeeks.join(", ")} rely on partial data.`
+            });
+          }
+          if (!notes.length) {
+            notes.push({
+              type: "info",
+              text: `${seasonData.label} loaded with ${seasonData.weekCount} week columns and ${seasonData.teamCount} clubs.`
+            });
+          }
+          state.messages = notes;
+        } catch (error) {
+          state.messages = [{
+            type: "error",
+            text: error && error.message ? error.message : "Season load failed."
+          }];
+          state.seasonData = null;
+        } finally {
+          setLoading(false);
+          renderStatus();
+          renderBoard();
+        }
+      }
+
+      async function invalidateWeekAndReload(week) {
+        if (state.loading) {
+          return;
+        }
+        const seasonStartYear = Number(els.seasonSelect.value);
+        setLoading(true);
+        try {
+          await deleteWeekCache(seasonStartYear, week);
+          state.messages = [{
+            type: "info",
+            text: `Deleted cached live responses for ${formatSeasonLabel(seasonStartYear)} week ${week}. Reloading season.`
+          }];
+          renderStatus();
+        } catch (error) {
+          state.messages = [{
+            type: "error",
+            text: error && error.message ? error.message : "Could not invalidate the week cache."
+          }];
+          setLoading(false);
+          renderStatus();
+          return;
+        }
+        setLoading(false);
+        await runSeasonLoad({ forceWeeks: [week] });
+      }
+
+      async function resetSeasonCacheAndReload() {
+        if (state.loading) {
+          return;
+        }
+        const seasonStartYear = Number(els.seasonSelect.value);
+        setLoading(true);
+        try {
+          await deleteSeasonCache(seasonStartYear);
+          state.messages = [{
+            type: "info",
+            text: `Cleared all cached live responses for ${formatSeasonLabel(seasonStartYear)}.`
+          }];
+        } catch (error) {
+          state.messages = [{
+            type: "error",
+            text: error && error.message ? error.message : "Could not clear the season cache."
+          }];
+        } finally {
+          setLoading(false);
+          renderStatus();
+        }
+        await runSeasonLoad({ forceSeason: true });
+      }
+
+      async function resetAllCacheAndReload() {
+        if (state.loading) {
+          return;
+        }
+        setLoading(true);
+        try {
+          await clearAllCache();
+          state.messages = [{
+            type: "info",
+            text: "Cleared every cached live response in the browser."
+          }];
+        } catch (error) {
+          state.messages = [{
+            type: "error",
+            text: error && error.message ? error.message : "Could not clear the browser cache."
+          }];
+          setLoading(false);
+          renderStatus();
+          return;
+        }
+        setLoading(false);
+        renderStatus();
+        await runSeasonLoad({ forceSeason: true });
+      }
+
+      async function loadSeasonData(seasonStartYear, { forceSeason = false, forceWeeks = new Set() } = {}) {
+        const expectedWeeks = getExpectedWeekCount(seasonStartYear);
+        const label = formatSeasonLabel(seasonStartYear);
+        const weeks = Array.from({ length: expectedWeeks }, (_, index) => index + 1);
+        const liveWeeks = new Map();
+        state.fetchProgress = { completed: 0, total: weeks.length * 2, label };
+        renderStatus();
+
+        await mapWithConcurrency(weeks, 4, async (week) => {
+          const forceWeek = forceSeason || forceWeeks.has(week);
+          const [standings, matches] = await Promise.all([
+            loadLiveResource(LIVE_STANDINGS, seasonStartYear, week, forceWeek),
+            loadLiveResource(LIVE_MATCHES, seasonStartYear, week, forceWeek)
+          ]);
+          liveWeeks.set(week, { standings, matches });
+        });
+
+        const needsBundle = hasBundledSeason(label) && weeks.some((week) => {
+          const record = liveWeeks.get(week);
+          return !(record && record.standings && record.standings.ok && record.matches && record.matches.ok);
+        });
+
+        let bundleSeason = null;
+        if (needsBundle) {
+          bundleSeason = await loadBundledSeason(label);
+        }
+
+        state.fetchProgress = null;
+
+        const normalized = buildSeasonRecord({
+          seasonStartYear,
+          label,
+          expectedWeeks,
+          liveWeeks,
+          bundleSeason
+        });
+
+        if (!normalized.teamCount) {
+          throw new Error(`No ranking data could be built for ${label}.`);
+        }
+
+        return normalized;
+      }
+
+      async function loadLiveResource(kind, seasonStartYear, week, force) {
+        const cached = !force ? await getCacheRecord(seasonStartYear, week, kind) : null;
+        if (cached) {
+          incrementProgress();
+          return { ...cached, fromCache: true };
+        }
+
+        const url = kind === LIVE_STANDINGS
+          ? `${LIVE_STANDINGS_BASE}/${seasonStartYear}/matchweeks/${week}/standings?live=false`
+          : `${LIVE_MATCHES_BASE}?competition=8&season=${seasonStartYear}&matchweek=${week}&_limit=40`;
+
+        let payload;
+        try {
+          payload = await fetchJson(url, { headers: buildRequestHeaders() });
+        } catch (error) {
+          if (error.httpStatus === 404) {
+            const missingRecord = {
+              seasonStartYear,
+              week,
+              kind,
+              ok: false,
+              missing: true,
+              status: 404,
+              fetchedAt: new Date().toISOString(),
+              payload: error.payload || null
+            };
+            await setCacheRecord(missingRecord);
+            incrementProgress();
+            return { ...missingRecord, fromCache: false };
+          }
+          incrementProgress();
+          return {
+            seasonStartYear,
+            week,
+            kind,
+            ok: false,
+            missing: false,
+            status: error.httpStatus || 0,
+            fetchedAt: new Date().toISOString(),
+            payload: null,
+            error: error.message || "Request failed",
+            fromCache: false
+          };
+        }
+
+        const record = {
+          seasonStartYear,
+          week,
+          kind,
+          ok: true,
+          missing: false,
+          status: 200,
+          fetchedAt: new Date().toISOString(),
+          payload
+        };
+        await setCacheRecord(record);
+        incrementProgress();
+        return { ...record, fromCache: false };
+      }
+
+      async function loadBundledSeason(label) {
+        if (state.bundledSeasonCache.has(label)) {
+          return state.bundledSeasonCache.get(label);
+        }
+
+        const files = BUNDLED_MANIFEST[label];
+        if (!files) {
+          return null;
+        }
+
+        const result = {
+          label,
+          weeks: new Map(),
+          mode: null,
+          warning: null,
+          fileProtocolFallbackBlocked: false
+        };
+
+        try {
+          await mapWithConcurrency(Object.entries(files), 4, async ([weekText, filename]) => {
+            const week = Number(weekText);
+            const response = await fetch(`Data/${label}/${filename}`);
+            if (!response.ok) {
+              throw new Error(`Bundled file fetch failed for ${label} week ${week}.`);
+            }
+            const payload = await response.json();
+            result.weeks.set(week, payload);
+          });
+        } catch (error) {
+          if (window.location.protocol === "file:") {
+            result.fileProtocolFallbackBlocked = true;
+            result.warning = "Bundled fallback is blocked from file:// in this browser.";
+          } else {
+            result.warning = error && error.message ? error.message : "Bundled fallback failed to load.";
+          }
+          state.bundledSeasonCache.set(label, result);
+          return result;
+        }
+
+        const sample = result.weeks.values().next().value;
+        if (sample && Array.isArray(sample.content)) {
+          result.mode = "fixtures";
+        } else if (sample && Array.isArray(sample.tables)) {
+          result.mode = "standings";
+        }
+        state.bundledSeasonCache.set(label, result);
+        return result;
+      }
+
+      function buildSeasonRecord({ seasonStartYear, label, expectedWeeks, liveWeeks, bundleSeason }) {
+        const bundleDerived = bundleSeason ? normalizeBundledSeason(bundleSeason) : null;
+        const weekRecords = [];
+        const teamCatalog = new Map();
+        let previousStandings = null;
+        let latestWeekWithStandings = 0;
+        const degradedWeeks = [];
+        const bundleInfo = {
+          used: false,
+          usedWeeks: 0,
+          warning: bundleSeason && bundleSeason.warning ? bundleSeason.warning : null,
+          fileProtocolFallbackBlocked: Boolean(bundleSeason && bundleSeason.fileProtocolFallbackBlocked)
+        };
+
+        for (let week = 1; week <= expectedWeeks; week += 1) {
+          const liveWeek = liveWeeks.get(week) || {};
+          const liveStandings = liveWeek.standings && liveWeek.standings.ok
+            ? normalizeLiveStandings(liveWeek.standings.payload)
+            : null;
+          const liveMatches = liveWeek.matches && liveWeek.matches.ok
+            ? normalizeLiveMatches(liveWeek.matches.payload)
+            : null;
+          const bundleWeek = bundleDerived ? bundleDerived.weeks.get(week) : null;
+
+          let standingsFrame = liveStandings || (bundleWeek ? bundleWeek.standings : null);
+          let standingsSource = liveStandings ? "live standings" : (bundleWeek && bundleWeek.standings ? "bundled fallback" : null);
+          let carriedForward = false;
+          if (!standingsFrame && previousStandings) {
+            standingsFrame = cloneStandingsFrame(previousStandings);
+            standingsSource = `carry forward from week ${latestWeekWithStandings}`;
+            carriedForward = true;
+          }
+          if (standingsFrame) {
+            previousStandings = standingsFrame;
+            latestWeekWithStandings = standingsFrame.week || latestWeekWithStandings || week;
+          }
+
+          const matchesFrame = liveMatches || (bundleWeek ? bundleWeek.matches : null);
+          const matchesSource = liveMatches ? "live matches" : (bundleWeek && bundleWeek.matches ? "bundled fallback" : null);
+
+          if (bundleWeek && (!liveStandings || !liveMatches)) {
+            bundleInfo.used = true;
+            bundleInfo.usedWeeks += 1;
+          }
+
+          const rankingRows = buildRankingRowsForWeek(standingsFrame, matchesFrame, week);
+          if (!rankingRows.length) {
+            degradedWeeks.push(`W${week}`);
+          }
+          rankingRows.forEach((row) => {
+            teamCatalog.set(row.team.abbr, {
+              abbr: row.team.abbr,
+              name: row.team.name || row.team.shortName || row.team.abbr,
+              shortName: row.team.shortName || row.team.name || row.team.abbr
+            });
+          });
+
+          weekRecords.push({
+            week,
+            carriedForward,
+            standingsSource,
+            matchesSource,
+            rankingRows,
+            teamMap: new Map(rankingRows.map((row) => [row.team.abbr, row]))
+          });
+        }
+
+        const finalWeek = [...weekRecords].reverse().find((weekRecord) => weekRecord.rankingRows.length) || weekRecords[0];
+        const finalOrder = finalWeek ? finalWeek.rankingRows.map((row) => row.team.abbr) : [];
+
+        const teamFlows = finalOrder.map((teamAbbr) => ({
+          teamAbbr,
+          team: teamCatalog.get(teamAbbr) || { abbr: teamAbbr, name: teamAbbr, shortName: teamAbbr },
+          color: colorForTeam(teamAbbr),
+          points: weekRecords.map((weekRecord) => {
+            const teamWeek = weekRecord.teamMap.get(teamAbbr);
+            return teamWeek ? { week: weekRecord.week, rank: teamWeek.rank } : null;
+          }).filter(Boolean)
+        }));
+
+        return {
+          seasonStartYear,
+          label,
+          weekCount: expectedWeeks,
+          teamCount: finalOrder.length,
+          finalOrder,
+          teamCatalog,
+          teamFlows,
+          weekRecords,
+          finalWeek,
+          degradedWeeks,
+          bundleInfo
+        };
+      }
+
+      function normalizeBundledSeason(bundleSeason) {
+        if (!bundleSeason || !bundleSeason.weeks.size) {
+          return null;
+        }
+
+        if (bundleSeason.mode === "standings") {
+          return normalizeBundledStandingsSeason(bundleSeason);
+        }
+
+        if (bundleSeason.mode === "fixtures") {
+          return normalizeBundledFixtureSeason(bundleSeason);
+        }
+
+        return null;
+      }
+
+      function normalizeBundledStandingsSeason(bundleSeason) {
+        const weeks = new Map();
+        for (const [week, payload] of bundleSeason.weeks.entries()) {
+          const standings = normalizeLegacyStandingsSnapshot(payload, week);
+          const matches = normalizeLegacyStandingsMatches(payload, week);
+          weeks.set(week, { standings, matches });
+        }
+        return { weeks };
+      }
+
+      function normalizeBundledFixtureSeason(bundleSeason) {
+        const fixtureWeeks = new Map();
+        const allTeams = new Map();
+        for (const [week, payload] of bundleSeason.weeks.entries()) {
+          const normalized = normalizeFixturePayload(payload);
+          fixtureWeeks.set(week, normalized);
+          normalized.matches.forEach((match) => {
+            allTeams.set(match.home.abbr, match.home);
+            allTeams.set(match.away.abbr, match.away);
+          });
+        }
+
+        const orderedWeeks = [...fixtureWeeks.keys()].sort((a, b) => a - b);
+        const weeks = new Map();
+
+        for (const targetWeek of orderedWeeks) {
+          const cumulativeGames = [];
+          const weekMatches = fixtureWeeks.get(targetWeek).matches;
+          orderedWeeks.filter((week) => week <= targetWeek).forEach((week) => {
+            fixtureWeeks.get(week).matches.forEach((match) => {
+              cumulativeGames.push(...createSummarizedGames(match));
+            });
+          });
+
+          const statsMap = new Map();
+          for (const team of allTeams.values()) {
+            const teamGames = cumulativeGames.filter((game) => game.club === team.abbr);
+            statsMap.set(team.abbr, {
+              team,
+              points: sum(teamGames, "points"),
+              goalsFor: sum(teamGames, "goalsFor"),
+              goalsAgainst: sum(teamGames, "goalsAgainst"),
+              goalDiff: sum(teamGames, "goalsDiff"),
+              wins: teamGames.filter((game) => isCompletedStatus(game.status) && game.points === 3).length,
+              draws: teamGames.filter((game) => isCompletedStatus(game.status) && game.points === 1).length,
+              losses: teamGames.filter((game) => isCompletedStatus(game.status) && game.points === 0).length
+            });
+          }
+
+          const ranked = [...statsMap.values()].sort((left, right) => {
+            if (right.points !== left.points) return right.points - left.points;
+            if (right.goalDiff !== left.goalDiff) return right.goalDiff - left.goalDiff;
+            if (right.goalsFor !== left.goalsFor) return right.goalsFor - left.goalsFor;
+            const h2hPoints = compareHeadToHead(cumulativeGames, left.team.abbr, right.team.abbr, "points");
+            if (h2hPoints !== 0) return h2hPoints;
+            const awayGoals = compareHeadToHead(cumulativeGames, left.team.abbr, right.team.abbr, "awayGoals");
+            if (awayGoals !== 0) return awayGoals;
+            return left.team.abbr.localeCompare(right.team.abbr);
+          }).map((entry, index) => ({
+            rank: index + 1,
+            team: entry.team,
+            points: entry.points,
+            wins: entry.wins,
+            draws: entry.draws,
+            losses: entry.losses,
+            goalsFor: entry.goalsFor,
+            goalsAgainst: entry.goalsAgainst,
+            goalDiff: entry.goalDiff
+          }));
+
+          weeks.set(targetWeek, {
+            standings: { week: targetWeek, table: ranked },
+            matches: normalizeFixtureWeekMatches(weekMatches)
+          });
+        }
+
+        return { weeks };
+      }
+
+      function normalizeFixturePayload(payload) {
+        const matches = (payload.content || []).map((match) => {
+          const home = normalizeLegacyTeam(match.teams[0].team);
+          const away = normalizeLegacyTeam(match.teams[1].team);
+          return {
+            week: Number(match.gameweek.gameweek),
+            status: match.status,
+            home,
+            away,
+            homeScore: numberOrNull(match.teams[0].score),
+            awayScore: numberOrNull(match.teams[1].score),
+            kickoffLabel: match.provisionalKickoff && match.provisionalKickoff.label
+              ? match.provisionalKickoff.label
+              : (match.kickoff && match.kickoff.label ? match.kickoff.label : null)
+          };
+        });
+        return { matches };
+      }
+
+      function normalizeFixtureWeekMatches(matches) {
+        const map = new Map();
+        matches.forEach((match) => {
+          appendFixtureSummary(map, match.home.abbr, summarizeFixture(match, true));
+          appendFixtureSummary(map, match.away.abbr, summarizeFixture(match, false));
+        });
+        return map;
+      }
+
+      function normalizeLegacyStandingsSnapshot(payload, week) {
+        const table = (payload.tables && payload.tables[0] && payload.tables[0].entries ? payload.tables[0].entries : [])
+          .map((entry, index) => {
+            const team = normalizeLegacyTeam(entry.team);
+            return {
+              rank: Number(entry.position || index + 1),
+              team,
+              points: Number(entry.overall.points || 0),
+              wins: Number(entry.overall.won || 0),
+              draws: Number(entry.overall.drawn || 0),
+              losses: Number(entry.overall.lost || 0),
+              goalsFor: Number(entry.overall.goalsFor || 0),
+              goalsAgainst: Number(entry.overall.goalsAgainst || 0),
+              goalDiff: Number(entry.overall.goalsDifference || 0)
+            };
+          });
+        return { week, table };
+      }
+
+      function normalizeLegacyStandingsMatches(payload, week) {
+        const map = new Map();
+        const entries = payload.tables && payload.tables[0] && payload.tables[0].entries ? payload.tables[0].entries : [];
+        entries.forEach((entry) => {
+          const team = normalizeLegacyTeam(entry.team);
+          const form = Array.isArray(entry.form) ? entry.form : [];
+          const lastMatch = form[form.length - 1];
+          if (!lastMatch || Number(lastMatch.gameweek && lastMatch.gameweek.gameweek) !== week || !Array.isArray(lastMatch.teams)) {
+            return;
+          }
+          if (!lastMatch.teams[0] || !lastMatch.teams[0].team || !lastMatch.teams[1] || !lastMatch.teams[1].team) {
+            return;
+          }
+          const isHome = normalizeLegacyTeam(lastMatch.teams[0].team).abbr === team.abbr;
+          appendFixtureSummary(map, team.abbr, summarizeLegacyFormMatch(lastMatch, isHome));
+        });
+        return map;
+      }
+
+      function normalizeLiveStandings(payload) {
+        if (!payload || !payload.tables || !payload.tables[0] || !Array.isArray(payload.tables[0].entries)) {
+          return null;
+        }
+        const table = payload.tables[0].entries.map((entry, index) => ({
+          rank: Number(entry.overall.position || index + 1),
+          team: {
+            abbr: entry.team.abbr,
+            name: entry.team.name,
+            shortName: entry.team.shortName || entry.team.name
+          },
+          points: Number(entry.overall.points || 0),
+          wins: Number(entry.overall.won || 0),
+          draws: Number(entry.overall.drawn || 0),
+          losses: Number(entry.overall.lost || 0),
+          goalsFor: Number(entry.overall.goalsFor || 0),
+          goalsAgainst: Number(entry.overall.goalsAgainst || 0),
+          goalDiff: Number((entry.overall.goalsFor || 0) - (entry.overall.goalsAgainst || 0))
+        })).sort((left, right) => left.rank - right.rank);
+        return { week: Number(payload.matchweek || 0), table };
+      }
+
+      function normalizeLiveMatches(payload) {
+        const map = new Map();
+        const matches = payload && Array.isArray(payload.data) ? payload.data : [];
+        matches.forEach((match) => {
+          const home = normalizeApiTeam(match.homeTeam);
+          const away = normalizeApiTeam(match.awayTeam);
+          appendFixtureSummary(map, home.abbr, summarizeLiveMatch(match, true));
+          appendFixtureSummary(map, away.abbr, summarizeLiveMatch(match, false));
+        });
+        return map;
+      }
+
+      function buildRankingRowsForWeek(standingsFrame, matchesFrame, week) {
+        if (!standingsFrame || !Array.isArray(standingsFrame.table)) {
+          return [];
+        }
+        return standingsFrame.table.map((entry) => ({
+          week,
+          rank: entry.rank,
+          team: entry.team,
+          points: entry.points,
+          wins: entry.wins,
+          draws: entry.draws,
+          losses: entry.losses,
+          goalsFor: entry.goalsFor,
+          goalsAgainst: entry.goalsAgainst,
+          goalDiff: entry.goalDiff,
+          fixtures: matchesFrame && matchesFrame.get(entry.team.abbr) ? matchesFrame.get(entry.team.abbr) : [],
+          title: buildCellTitle(entry, matchesFrame && matchesFrame.get(entry.team.abbr))
+        }));
+      }
+
+      function buildCellTitle(entry, fixtures) {
+        const lines = [
+          `${entry.team.name || entry.team.abbr}`,
+          `W ${entry.wins} / D ${entry.draws} / L ${entry.losses}`,
+          `Points ${entry.points}, GD ${entry.goalDiff}`
+        ];
+        (fixtures || []).forEach((fixture) => lines.push(fixture.text));
+        return lines.join("\n");
+      }
+
+      function renderStatus() {
+        const pills = [];
+        pills.push(`<span class="pill"><strong>Version</strong> ${APP_VERSION}</span>`);
+        pills.push(`<span class="pill"><strong>Mode</strong> ${window.location.protocol === "file:" ? "file://" : "hosted"}</span>`);
+        if (state.fetchProgress) {
+          pills.push(`<span class="pill"><strong>Loading</strong> ${state.fetchProgress.label}: ${state.fetchProgress.completed}/${state.fetchProgress.total} requests</span>`);
+        }
+        if (state.cacheSummary) {
+          pills.push(`<span class="pill"><strong>Cache</strong> ${state.cacheSummary.recordCount} records for ${formatSeasonLabel(state.cacheSummary.seasonStartYear)}</span>`);
+        }
+        els.statusBar.innerHTML = pills.join("");
+
+        els.metaStrip.innerHTML = [
+          `<span class="pill"><strong>Selected</strong> ${formatSeasonLabel(Number(els.seasonSelect.value || state.settings.selectedSeason))}</span>`,
+          `<span class="pill"><strong>Week</strong> ${getSelectedWeek()}</span>`,
+          `<span class="pill"><strong>Cell Opacity</strong> ${clamp(Number(state.settings.cellOpacityPercent || 34), 0, 100)}%</span>`,
+          `<span class="pill"><strong>Cell Blur</strong> ${clamp(Number(state.settings.cellBlurPx || 4), 0, 24)}px</span>`,
+          `<span class="pill"><strong>Header Overrides</strong> ${state.settings.enableHeaderOverrides ? "enabled" : "off"}</span>`
+        ].join("");
+
+        els.cellOpacityValue.textContent = `${clamp(Number(state.settings.cellOpacityPercent || 34), 0, 100)}%`;
+        els.cellBlurValue.textContent = `${clamp(Number(state.settings.cellBlurPx || 4), 0, 24)}px`;
+
+        els.messages.innerHTML = state.messages.map((message) => (
+          `<div class="message ${message.type}">${escapeHtml(message.text)}</div>`
+        )).join("");
+
+        const disabled = state.loading;
+        [
+          els.loadSeasonBtn,
+          els.forceSeasonBtn,
+          els.reloadWeekBtn,
+          els.forceWeekBtn,
+          els.invalidateWeekBtn,
+          els.resetSeasonBtn,
+          els.resetAllBtn
+        ].forEach((button) => {
+          button.disabled = disabled;
+        });
+      }
+
+      function renderBoard() {
+        const seasonData = state.seasonData;
+        if (!seasonData) {
+          els.boardSummary.innerHTML = "";
+          els.boardStage.innerHTML = els.emptyState ? els.emptyState.outerHTML : "";
+          return;
+        }
+
+        const width = BOARD.labelWidth + (seasonData.weekCount * BOARD.weekWidth) + ((seasonData.weekCount - 1) * BOARD.columnGap);
+        const height = BOARD.headerHeight + (seasonData.teamCount * BOARD.rowHeight) + ((seasonData.teamCount - 1) * BOARD.rowGap);
+
+        const boardGrid = document.createElement("div");
+        boardGrid.className = "board-grid";
+        boardGrid.style.gridTemplateColumns = `${BOARD.labelWidth}px repeat(${seasonData.weekCount}, ${BOARD.weekWidth}px)`;
+        boardGrid.style.gridTemplateRows = `${BOARD.headerHeight}px repeat(${seasonData.teamCount}, ${BOARD.rowHeight}px)`;
+        boardGrid.style.width = `${width}px`;
+        boardGrid.style.minHeight = `${height}px`;
+
+        const corner = document.createElement("div");
+        corner.className = "corner-cell";
+        corner.innerHTML = `<div><strong>${escapeHtml(seasonData.label)}</strong><span>Rows follow the latest available table.</span></div><span>${seasonData.teamCount} clubs</span>`;
+        boardGrid.appendChild(corner);
+
+        for (let week = 1; week <= seasonData.weekCount; week += 1) {
+          const weekRecord = seasonData.weekRecords[week - 1];
+          const header = document.createElement("div");
+          header.className = "week-header";
+          header.innerHTML = `<strong>Week ${week}</strong><span>${escapeHtml(weekHeaderCaption(weekRecord))}</span>`;
+          boardGrid.appendChild(header);
+        }
+
+        seasonData.finalOrder.forEach((teamAbbr, rowIndex) => {
+          const team = seasonData.teamCatalog.get(teamAbbr);
+          const label = document.createElement("div");
+          label.className = "side-label";
+          label.dataset.team = teamAbbr;
+          label.innerHTML = `
+            <span class="team-chip" style="background:${colorForTeam(teamAbbr)}"></span>
+            <div class="side-meta">
+              <strong>#${rowIndex + 1} ${escapeHtml(teamAbbr)}</strong>
+              <span>${escapeHtml(team ? team.name : teamAbbr)}</span>
+            </div>
+          `;
+          boardGrid.appendChild(label);
+
+          for (let week = 1; week <= seasonData.weekCount; week += 1) {
+            const weekRecord = seasonData.weekRecords[week - 1];
+            const rankingRow = weekRecord.rankingRows[rowIndex];
+            const cell = document.createElement("div");
+            cell.className = "rank-cell";
+            if (weekRecord.carriedForward) {
+              cell.classList.add("carried");
+            }
+            if (!rankingRow) {
+              cell.innerHTML = `<div class="rank-caption">No data</div>`;
+              boardGrid.appendChild(cell);
+              continue;
+            }
+
+            cell.dataset.team = rankingRow.team.abbr;
+            cell.title = rankingRow.title;
+            cell.innerHTML = `
+              <div class="rank-topline">
+                <strong>${escapeHtml(rankingRow.team.abbr)}</strong>
+                <span class="badge">#${rankingRow.rank}</span>
+              </div>
+              <div class="rank-summary">
+                ${rankingRow.wins}-${rankingRow.draws}-${rankingRow.losses} · ${rankingRow.points} pts · GD ${rankingRow.goalDiff}
+              </div>
+              <div class="fixture-list">
+                ${renderFixtureLines(rankingRow.fixtures, weekRecord.carriedForward)}
+              </div>
+            `;
+            boardGrid.appendChild(cell);
+          }
+        });
+
+        const flowSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        flowSvg.setAttribute("class", "flow-layer");
+        flowSvg.setAttribute("width", String(width));
+        flowSvg.setAttribute("height", String(height));
+        flowSvg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+
+        seasonData.teamFlows.forEach((flow) => {
+          const pathData = buildFlowPath(flow.points);
+          if (!pathData) {
+            return;
+          }
+          const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+          group.setAttribute("class", "flow-team");
+          group.dataset.team = flow.teamAbbr;
+
+          const halo = document.createElementNS("http://www.w3.org/2000/svg", "path");
+          halo.setAttribute("class", "flow-halo");
+          halo.setAttribute("d", pathData);
+
+          const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+          path.setAttribute("class", "flow-path");
+          path.setAttribute("d", pathData);
+          path.setAttribute("stroke", flow.color);
+
+          group.appendChild(halo);
+          group.appendChild(path);
+          flowSvg.appendChild(group);
+        });
+
+        const stage = document.createElement("div");
+        stage.className = "board-stage";
+        stage.style.width = `${width}px`;
+        stage.style.minHeight = `${height}px`;
+        stage.appendChild(flowSvg);
+        stage.appendChild(boardGrid);
+
+        stage.addEventListener("mouseover", handleTeamHover, true);
+        stage.addEventListener("mouseout", handleTeamHoverOut, true);
+        stage.addEventListener("click", handleTeamToggle, true);
+
+        els.boardStage.replaceWith(stage);
+        stage.id = "board-stage";
+        els.boardStage = stage;
+
+        applyHighlightState();
+
+        const sourceBits = [];
+        sourceBits.push(`<span class="pill"><strong>Season</strong> ${escapeHtml(seasonData.label)}</span>`);
+        sourceBits.push(`<span class="pill"><strong>Rows</strong> ${seasonData.teamCount}</span>`);
+        sourceBits.push(`<span class="pill"><strong>Columns</strong> ${seasonData.weekCount}</span>`);
+        if (seasonData.bundleInfo.used) {
+          sourceBits.push(`<span class="pill"><strong>Fallback</strong> ${seasonData.bundleInfo.usedWeeks} bundle-assisted week(s)</span>`);
+        }
+        if (seasonData.degradedWeeks.length) {
+          sourceBits.push(`<span class="pill"><strong>Degraded</strong> ${seasonData.degradedWeeks.length} week(s)</span>`);
+        }
+        els.boardSummary.innerHTML = sourceBits.join("");
+      }
+
+      function handleTeamHover(event) {
+        const team = resolveHoverTeamFromEvent(event.target);
+        if (!team) {
+          state.highlightedTeam = null;
+          applyHighlightState();
+          return;
+        }
+        state.highlightedTeam = team;
+        applyHighlightState();
+      }
+
+      function handleTeamHoverOut(event) {
+        const related = event.relatedTarget;
+        if (resolveHoverTeamFromEvent(related)) {
+          return;
+        }
+        state.highlightedTeam = null;
+        applyHighlightState();
+      }
+
+      function handleTeamToggle(event) {
+        const team = resolveTeamFromEvent(event.target);
+        if (!team) {
+          return;
+        }
+        if (state.pinnedTeams.has(team)) {
+          state.pinnedTeams.delete(team);
+        } else {
+          state.pinnedTeams.add(team);
+        }
+        applyHighlightState();
+      }
+
+      function applyHighlightState() {
+        const activeTeams = new Set(state.pinnedTeams);
+        if (state.highlightedTeam) {
+          activeTeams.add(state.highlightedTeam);
+        }
+
+        document.querySelectorAll("[data-team]").forEach((node) => {
+          const team = node.dataset.team;
+          if (!team) {
+            return;
+          }
+          node.classList.toggle("active", activeTeams.has(team));
+          node.classList.toggle("pinned", state.pinnedTeams.has(team));
+        });
+      }
+
+      function renderFixtureLines(fixtures, carriedForward) {
+        if (!fixtures || !fixtures.length) {
+          return `<div class="fixture-line muted">${carriedForward ? "Standings carried forward" : "No fixture detail"}</div>`;
+        }
+        return fixtures.map((fixture) => (
+          `<div class="fixture-line">${escapeHtml(fixture.text)}</div>`
+        )).join("");
+      }
+
+      function weekHeaderCaption(weekRecord) {
+        if (!weekRecord) {
+          return "No data";
+        }
+        if (weekRecord.carriedForward) {
+          return `standings held · ${weekRecord.matchesSource || "fixtures unavailable"}`;
+        }
+        if (weekRecord.standingsSource && weekRecord.matchesSource && weekRecord.standingsSource === weekRecord.matchesSource) {
+          return weekRecord.standingsSource;
+        }
+        if (weekRecord.standingsSource && weekRecord.matchesSource) {
+          return `${weekRecord.standingsSource} + ${weekRecord.matchesSource}`;
+        }
+        return weekRecord.standingsSource || weekRecord.matchesSource || "No source";
+      }
+
+      function resolveTeamFromEvent(target) {
+        if (!target || !target.closest) {
+          return null;
+        }
+        const teamNode = target.closest("[data-team]");
+        return teamNode ? teamNode.dataset.team : null;
+      }
+
+      function resolveHoverTeamFromEvent(target) {
+        if (!target || !target.closest) {
+          return null;
+        }
+        const teamNode = target.closest(".rank-cell, .side-label");
+        return teamNode ? teamNode.dataset.team : null;
+      }
+
+      function buildFlowPath(points) {
+        if (!points.length) {
+          return "";
+        }
+        const coords = points.map((point) => ({
+          x: BOARD.labelWidth + ((point.week - 1) * (BOARD.weekWidth + BOARD.columnGap)) + (BOARD.weekWidth / 2),
+          y: BOARD.headerHeight + ((point.rank - 1) * (BOARD.rowHeight + BOARD.rowGap)) + (BOARD.rowHeight / 2)
+        }));
+        if (!coords.length) {
+          return "";
+        }
+
+        let path = `M ${coords[0].x} ${coords[0].y}`;
+        for (let index = 1; index < coords.length; index += 1) {
+          const previous = coords[index - 1];
+          const current = coords[index];
+          const halfGap = (current.x - previous.x) / 2;
+          path += ` C ${previous.x + halfGap} ${previous.y}, ${current.x - halfGap} ${current.y}, ${current.x} ${current.y}`;
+        }
+        return path;
+      }
+
+      function summarizeLiveMatch(match, isHome) {
+        const own = isHome ? match.homeTeam : match.awayTeam;
+        const opponent = isHome ? match.awayTeam : match.homeTeam;
+        const ownScore = numberOrNull(own.score);
+        const opponentScore = numberOrNull(opponent.score);
+        const prefix = isHome ? "vs" : "@";
+
+        if (ownScore !== null && opponentScore !== null && match.period !== "PreMatch") {
+          const marker = ownScore > opponentScore ? "+" : (ownScore < opponentScore ? "-" : "=");
+          return {
+            text: `${prefix} ${opponent.abbr} (${marker}${ownScore}:${opponentScore})`
+          };
+        }
+
+        return {
+          text: `${prefix} ${opponent.abbr}`
+        };
+      }
+
+      function summarizeFixture(match, isHome) {
+        const own = isHome ? match.home : match.away;
+        const opponent = isHome ? match.away : match.home;
+        const ownScore = numberOrNull(match.homeScore !== null ? (isHome ? match.homeScore : match.awayScore) : null);
+        const opponentScore = numberOrNull(match.awayScore !== null ? (isHome ? match.awayScore : match.homeScore) : null);
+        const prefix = isHome ? "vs" : "@";
+        if (ownScore !== null && opponentScore !== null && match.status !== "U") {
+          const marker = ownScore > opponentScore ? "+" : (ownScore < opponentScore ? "-" : "=");
+          return {
+            text: `${prefix} ${opponent.abbr} (${marker}${ownScore}:${opponentScore})`
+          };
+        }
+        return {
+          text: `${prefix} ${opponent.abbr}`
+        };
+      }
+
+      function summarizeLegacyFormMatch(match, isHome) {
+        const own = isHome ? match.teams[0] : match.teams[1];
+        const opponent = isHome ? match.teams[1] : match.teams[0];
+        if (!own || !own.team || !opponent || !opponent.team) {
+          return { text: "Fixture detail unavailable" };
+        }
+        const ownTeam = normalizeLegacyTeam(own.team);
+        const opponentTeam = normalizeLegacyTeam(opponent.team);
+        const ownScore = numberOrNull(own.score);
+        const opponentScore = numberOrNull(opponent.score);
+        const prefix = isHome ? "vs" : "@";
+        if (ownScore !== null && opponentScore !== null) {
+          const marker = ownScore > opponentScore ? "+" : (ownScore < opponentScore ? "-" : "=");
+          return {
+            text: `${prefix} ${opponentTeam.abbr} (${marker}${ownScore}:${opponentScore})`
+          };
+        }
+        return {
+          text: `${prefix} ${opponentTeam.abbr}`
+        };
+      }
+
+      function createSummarizedGames(match) {
+        const homePoints = match.status === "U"
+          ? 0
+          : (match.homeScore > match.awayScore ? 3 : (match.homeScore === match.awayScore ? 1 : 0));
+        const awayPoints = match.status === "U"
+          ? 0
+          : (match.awayScore > match.homeScore ? 3 : (match.homeScore === match.awayScore ? 1 : 0));
+
+        return [
+          {
+            week: match.week,
+            club: match.home.abbr,
+            opponent: match.away.abbr,
+            clubIsHome: true,
+            goalsFor: numberOrZero(match.homeScore),
+            goalsAgainst: numberOrZero(match.awayScore),
+            goalsDiff: numberOrZero(match.homeScore) - numberOrZero(match.awayScore),
+            points: homePoints,
+            status: match.status
+          },
+          {
+            week: match.week,
+            club: match.away.abbr,
+            opponent: match.home.abbr,
+            clubIsHome: false,
+            goalsFor: numberOrZero(match.awayScore),
+            goalsAgainst: numberOrZero(match.homeScore),
+            goalsDiff: numberOrZero(match.awayScore) - numberOrZero(match.homeScore),
+            points: awayPoints,
+            status: match.status
+          }
+        ];
+      }
+
+      function compareHeadToHead(games, leftClub, rightClub, mode) {
+        const leftGames = games.filter((game) => game.club === leftClub && game.opponent === rightClub);
+        const rightGames = games.filter((game) => game.club === rightClub && game.opponent === leftClub);
+
+        let leftValue = 0;
+        let rightValue = 0;
+        if (mode === "points") {
+          leftValue = sum(leftGames, "points");
+          rightValue = sum(rightGames, "points");
+        } else if (mode === "awayGoals") {
+          leftValue = leftGames.filter((game) => !game.clubIsHome).reduce((total, game) => total + game.goalsFor, 0);
+          rightValue = rightGames.filter((game) => !game.clubIsHome).reduce((total, game) => total + game.goalsFor, 0);
+        }
+        return rightValue - leftValue;
+      }
+
+      function cloneStandingsFrame(frame) {
+        return {
+          week: frame.week,
+          table: frame.table.map((entry) => ({
+            rank: entry.rank,
+            team: { ...entry.team },
+            points: entry.points,
+            wins: entry.wins,
+            draws: entry.draws,
+            losses: entry.losses,
+            goalsFor: entry.goalsFor,
+            goalsAgainst: entry.goalsAgainst,
+            goalDiff: entry.goalDiff
+          }))
+        };
+      }
+
+      function appendFixtureSummary(map, teamAbbr, summary) {
+        if (!map.has(teamAbbr)) {
+          map.set(teamAbbr, []);
+        }
+        map.get(teamAbbr).push(summary);
+      }
+
+      function normalizeApiTeam(team) {
+        return {
+          abbr: team.abbr,
+          name: team.name,
+          shortName: team.shortName || team.name
+        };
+      }
+
+      function normalizeLegacyTeam(team) {
+        const club = team.club || team;
+        return {
+          abbr: club.abbr,
+          name: club.name || team.name || club.shortName || club.abbr,
+          shortName: club.shortName || team.shortName || club.name || club.abbr
+        };
+      }
+
+      function buildRequestHeaders() {
+        if (!state.settings.enableHeaderOverrides) {
+          return { ...DEFAULT_HEADERS };
+        }
+
+        const text = state.settings.headerOverrideText && state.settings.headerOverrideText.trim();
+        if (!text) {
+          return { ...DEFAULT_HEADERS };
+        }
+
+        try {
+          const parsed = JSON.parse(text);
+          return { ...DEFAULT_HEADERS, ...parsed };
+        } catch (error) {
+          state.messages = [{
+            type: "warn",
+            text: "Header overrides are not valid JSON. Falling back to simple GET headers."
+          }];
+          renderStatus();
+          return { ...DEFAULT_HEADERS };
+        }
+      }
+
+      function applyVisualSettings() {
+        const opacityPercent = clamp(Number(state.settings.cellOpacityPercent || 34), 0, 100);
+        const blurPx = clamp(Number(state.settings.cellBlurPx || 4), 0, 24);
+        document.documentElement.style.setProperty("--cell-fill-alpha", (opacityPercent / 100).toFixed(2));
+        document.documentElement.style.setProperty("--cell-blur", `${blurPx}px`);
+        if (els.cellOpacitySlider.value !== String(opacityPercent)) {
+          els.cellOpacitySlider.value = String(opacityPercent);
+        }
+        if (els.cellBlurSlider.value !== String(blurPx)) {
+          els.cellBlurSlider.value = String(blurPx);
+        }
+        if (els.cellOpacityValue) {
+          els.cellOpacityValue.textContent = `${opacityPercent}%`;
+        }
+        if (els.cellBlurValue) {
+          els.cellBlurValue.textContent = `${blurPx}px`;
+        }
+      }
+
+      async function fetchJson(url, options = {}) {
+        const response = await fetch(url, {
+          method: "GET",
+          mode: "cors",
+          credentials: "omit",
+          headers: options.headers || DEFAULT_HEADERS
+        });
+
+        const text = await response.text();
+        let payload = null;
+        if (text) {
+          try {
+            payload = JSON.parse(text);
+          } catch (error) {
+            payload = null;
+          }
+        }
+
+        if (!response.ok) {
+          const err = new Error((payload && (payload.detail || payload.title)) || `HTTP ${response.status}`);
+          err.httpStatus = response.status;
+          err.payload = payload;
+          throw err;
+        }
+
+        return payload;
+      }
+
+      function incrementProgress() {
+        if (!state.fetchProgress) {
+          return;
+        }
+        state.fetchProgress.completed += 1;
+        renderStatus();
+      }
+
+      function setLoading(isLoading) {
+        state.loading = isLoading;
+      }
+
+      function getSelectedWeek() {
+        return Number(els.weekSelect.value || state.settings.selectedWeek || 1);
+      }
+
+      function buildSeasonYears() {
+        const years = new Set();
+        const current = detectCurrentSeasonStartYear();
+        for (let year = 1992; year <= current; year += 1) {
+          years.add(year);
+        }
+        Object.keys(BUNDLED_MANIFEST).forEach((label) => {
+          years.add(parseInt(label.slice(0, 4), 10));
+        });
+        return [...years].sort((left, right) => right - left);
+      }
+
+      function detectCurrentSeasonStartYear() {
+        const now = new Date();
+        return now.getMonth() >= 6 ? now.getFullYear() : now.getFullYear() - 1;
+      }
+
+      function getExpectedWeekCount(seasonStartYear) {
+        const label = formatSeasonLabel(seasonStartYear);
+        const bundled = BUNDLED_MANIFEST[label];
+        if (bundled) {
+          return Math.max(...Object.keys(bundled).map(Number));
+        }
+        return seasonStartYear <= 1994 ? 42 : 38;
+      }
+
+      function hasBundledSeason(label) {
+        return Boolean(BUNDLED_MANIFEST[label]);
+      }
+
+      function formatSeasonLabel(startYear) {
+        return `${startYear}-${startYear + 1}`;
+      }
+
+      function colorForTeam(teamAbbr) {
+        let hash = 0;
+        for (const char of teamAbbr) {
+          hash = ((hash << 5) - hash) + char.charCodeAt(0);
+          hash |= 0;
+        }
+        const hue = Math.abs(hash) % 360;
+        return `hsl(${hue} 72% 60%)`;
+      }
+
+      function numberOrNull(value) {
+        return typeof value === "number" && !Number.isNaN(value) ? value : null;
+      }
+
+      function numberOrZero(value) {
+        return typeof value === "number" && !Number.isNaN(value) ? value : 0;
+      }
+
+      function sum(items, key) {
+        return items.reduce((total, item) => total + (item[key] || 0), 0);
+      }
+
+      function clamp(value, min, max) {
+        return Math.min(max, Math.max(min, value));
+      }
+
+      function isCompletedStatus(status) {
+        return status === "C" || status === "L";
+      }
+
+      function escapeHtml(value) {
+        return String(value == null ? "" : value)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#39;");
+      }
+
+      function loadSettings() {
+        try {
+          const raw = window.localStorage.getItem(SETTINGS_KEY);
+          if (!raw) {
+            return { ...defaultSettings };
+          }
+          return { ...defaultSettings, ...JSON.parse(raw) };
+        } catch (error) {
+          return { ...defaultSettings };
+        }
+      }
+
+      function saveSettings() {
+        window.localStorage.setItem(SETTINGS_KEY, JSON.stringify(state.settings));
+      }
+
+      async function mapWithConcurrency(items, limit, worker) {
+        const queue = [...items];
+        const runners = Array.from({ length: Math.min(limit, items.length || 1) }, async () => {
+          while (queue.length) {
+            const next = queue.shift();
+            await worker(next);
+          }
+        });
+        await Promise.all(runners);
+      }
+
+      function cacheKey(seasonStartYear, week, kind) {
+        return `${seasonStartYear}:${week}:${kind}`;
+      }
+
+      function openCacheDb() {
+        return new Promise((resolve, reject) => {
+          const request = indexedDB.open(DB_NAME, 1);
+          request.onupgradeneeded = () => {
+            const db = request.result;
+            if (!db.objectStoreNames.contains(STORE_NAME)) {
+              db.createObjectStore(STORE_NAME, { keyPath: "cacheKey" });
+            }
+          };
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+      }
+
+      async function withStore(mode, action) {
+        const db = await openCacheDb();
+        return new Promise((resolve, reject) => {
+          const transaction = db.transaction(STORE_NAME, mode);
+          const store = transaction.objectStore(STORE_NAME);
+          let result;
+          try {
+            result = action(store);
+          } catch (error) {
+            reject(error);
+            return;
+          }
+          transaction.oncomplete = () => resolve(result);
+          transaction.onerror = () => reject(transaction.error);
+        });
+      }
+
+      async function getCacheRecord(seasonStartYear, week, kind) {
+        const key = cacheKey(seasonStartYear, week, kind);
+        const db = await openCacheDb();
+        return new Promise((resolve, reject) => {
+          const transaction = db.transaction(STORE_NAME, "readonly");
+          const request = transaction.objectStore(STORE_NAME).get(key);
+          request.onsuccess = () => resolve(request.result || null);
+          request.onerror = () => reject(request.error);
+        });
+      }
+
+      async function setCacheRecord(record) {
+        const db = await openCacheDb();
+        const data = {
+          ...record,
+          cacheKey: cacheKey(record.seasonStartYear, record.week, record.kind)
+        };
+        return new Promise((resolve, reject) => {
+          const transaction = db.transaction(STORE_NAME, "readwrite");
+          const request = transaction.objectStore(STORE_NAME).put(data);
+          request.onsuccess = () => resolve(data);
+          request.onerror = () => reject(request.error);
+        });
+      }
+
+      async function summarizeCache(seasonStartYear) {
+        const records = await getAllCacheRecords();
+        const seasonRecords = records.filter((record) => record.seasonStartYear === seasonStartYear);
+        return {
+          seasonStartYear,
+          recordCount: seasonRecords.length
+        };
+      }
+
+      async function getAllCacheRecords() {
+        const db = await openCacheDb();
+        return new Promise((resolve, reject) => {
+          const transaction = db.transaction(STORE_NAME, "readonly");
+          const request = transaction.objectStore(STORE_NAME).getAll();
+          request.onsuccess = () => resolve(request.result || []);
+          request.onerror = () => reject(request.error);
+        });
+      }
+
+      async function deleteWeekCache(seasonStartYear, week) {
+        const db = await openCacheDb();
+        return new Promise((resolve, reject) => {
+          const transaction = db.transaction(STORE_NAME, "readwrite");
+          const store = transaction.objectStore(STORE_NAME);
+          store.delete(cacheKey(seasonStartYear, week, LIVE_STANDINGS));
+          store.delete(cacheKey(seasonStartYear, week, LIVE_MATCHES));
+          transaction.oncomplete = () => resolve();
+          transaction.onerror = () => reject(transaction.error);
+        });
+      }
+
+      async function deleteSeasonCache(seasonStartYear) {
+        const records = await getAllCacheRecords();
+        const targets = records.filter((record) => record.seasonStartYear === seasonStartYear);
+        const db = await openCacheDb();
+        return new Promise((resolve, reject) => {
+          const transaction = db.transaction(STORE_NAME, "readwrite");
+          const store = transaction.objectStore(STORE_NAME);
+          targets.forEach((record) => store.delete(record.cacheKey));
+          transaction.oncomplete = () => resolve();
+          transaction.onerror = () => reject(transaction.error);
+        });
+      }
+
+      async function clearAllCache() {
+        const db = await openCacheDb();
+        return new Promise((resolve, reject) => {
+          const transaction = db.transaction(STORE_NAME, "readwrite");
+          const request = transaction.objectStore(STORE_NAME).clear();
+          request.onsuccess = () => resolve();
+          request.onerror = () => reject(request.error);
+        });
+      }
+    })();
+  </script>
+</body>
+</html>
