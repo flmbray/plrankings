@@ -584,6 +584,10 @@
       background: rgb(9 27 35 / calc(var(--cell-fill-alpha) + 0.2));
     }
 
+    .board-stage.has-team-focus .side-label:not(.active):not(.pinned) {
+      opacity: 0.3;
+    }
+
     .side-label.champion {
       background:
         linear-gradient(180deg, rgba(183, 240, 171, 0.28), rgba(78, 132, 82, 0.18)),
@@ -2000,6 +2004,10 @@
         const activeTeams = new Set(state.pinnedTeams);
         if (state.highlightedTeam) {
           activeTeams.add(state.highlightedTeam);
+        }
+
+        if (els.boardStage) {
+          els.boardStage.classList.toggle("has-team-focus", activeTeams.size > 0);
         }
 
         document.querySelectorAll("[data-team]").forEach((node) => {
