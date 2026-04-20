@@ -743,6 +743,92 @@
       display: none;
     }
 
+    .fixture-preview-tooltip {
+      position: absolute;
+      z-index: 46;
+      min-width: 180px;
+      max-width: min(300px, calc(100vw - 40px));
+      padding: 8px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background:
+        linear-gradient(180deg, rgba(10, 20, 26, 0.96), rgba(5, 12, 16, 0.94)),
+        rgba(7, 17, 22, 0.95);
+      box-shadow: 0 18px 36px rgba(0, 0, 0, 0.32);
+      backdrop-filter: blur(10px);
+      pointer-events: none;
+      color: #fff;
+    }
+
+    .fixture-preview-tooltip[hidden] {
+      display: none;
+    }
+
+    .fixture-preview-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .fixture-preview-row {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .fixture-preview-team {
+      min-width: 0;
+      padding: 4px 6px;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 0.74rem;
+      line-height: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      background: #111417;
+    }
+
+    .fixture-preview-team.home {
+      text-align: right;
+    }
+
+    .fixture-preview-team.away {
+      text-align: left;
+    }
+
+    .fixture-preview-team.win {
+      background: #1a5b31;
+    }
+
+    .fixture-preview-team.loss {
+      background: #6c1d1d;
+    }
+
+    .fixture-preview-team.draw {
+      background: #454d55;
+    }
+
+    .fixture-preview-team.upcoming {
+      background: #111417;
+    }
+
+    .fixture-preview-team.focal {
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.92), 0 0 0 1px rgba(255, 255, 255, 0.16);
+    }
+
+    .fixture-preview-score {
+      padding: 3px 6px;
+      border-radius: 999px;
+      color: rgba(255, 255, 255, 0.92);
+      font-size: 0.72rem;
+      font-weight: 700;
+      line-height: 1;
+      background: rgba(255, 255, 255, 0.08);
+      white-space: nowrap;
+    }
+
     .fixture-tooltip {
       position: absolute;
       z-index: 47;
@@ -756,7 +842,7 @@
         rgba(7, 17, 22, 0.97);
       box-shadow: 0 24px 52px rgba(0, 0, 0, 0.42);
       backdrop-filter: blur(12px);
-      pointer-events: none;
+      pointer-events: auto;
       color: #fff;
     }
 
@@ -784,6 +870,17 @@
       grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
       gap: 10px;
       align-items: stretch;
+      border-radius: 16px;
+      transition: transform 120ms ease, box-shadow 120ms ease;
+    }
+
+    .fixture-tooltip-match.selectable {
+      cursor: pointer;
+    }
+
+    .fixture-tooltip-match.selectable:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2);
     }
 
     .fixture-tooltip-side {
@@ -1421,6 +1518,7 @@
         </div>
         <div class="week-tooltip" id="week-tooltip" hidden></div>
         <div class="club-tooltip" id="club-tooltip" hidden></div>
+        <div class="fixture-preview-tooltip" id="fixture-preview-tooltip" hidden></div>
         <div class="fixture-tooltip" id="fixture-tooltip" hidden></div>
       </section>
     </section>
@@ -1471,6 +1569,7 @@
         hoveredWeek: null,
         hoveredClub: null,
         hoveredFixture: null,
+        hoveredFixturePreview: null,
         pinnedTeams: new Set(),
         settings: loadSettings(),
         fetchProgress: null,
@@ -1516,6 +1615,7 @@
         maximizeBoardBtn: document.getElementById("maximize-board-btn"),
         weekTooltip: document.getElementById("week-tooltip"),
         clubTooltip: document.getElementById("club-tooltip"),
+        fixturePreviewTooltip: document.getElementById("fixture-preview-tooltip"),
         fixtureTooltip: document.getElementById("fixture-tooltip")
       };
 
@@ -1603,6 +1703,13 @@
           state.boardMaximized = !state.boardMaximized;
           applyBoardMaximizedState();
         });
+
+        if (els.fixtureTooltip) {
+          els.fixtureTooltip.addEventListener("click", handleFixtureTooltipClick);
+        }
+
+        document.addEventListener("mousedown", handleDocumentPointerDown, true);
+        document.addEventListener("keydown", handleDocumentKeydown);
 
         els.boardScroll.addEventListener("scroll", () => {
           applyHorizontalScrollState();
@@ -2364,8 +2471,10 @@
         state.hoveredWeek = null;
         state.hoveredClub = null;
         state.hoveredFixture = null;
+        state.hoveredFixturePreview = null;
         hideWeekTooltip();
         hideClubTooltip();
+        hideFixturePreviewTooltip();
         hideFixtureTooltip();
         if (!seasonData) {
           els.boardSummary.innerHTML = "";
@@ -2506,9 +2615,9 @@
 
         stage.addEventListener("mouseover", handleTeamHover, true);
         stage.addEventListener("mouseout", handleTeamHoverOut, true);
-        stage.addEventListener("mouseover", handleFixtureHover, true);
-        stage.addEventListener("mouseout", handleFixtureHoverOut, true);
-        stage.addEventListener("mousemove", handleFixtureHoverMove, true);
+        stage.addEventListener("mouseover", handleFixturePreviewHover, true);
+        stage.addEventListener("mouseout", handleFixturePreviewOut, true);
+        stage.addEventListener("mousemove", handleFixturePreviewMove, true);
         stage.addEventListener("mouseover", handleClubHover, true);
         stage.addEventListener("mouseout", handleClubHoverOut, true);
         stage.addEventListener("mousemove", handleClubHoverMove, true);
@@ -2576,31 +2685,37 @@
         applyHighlightState();
       }
 
-      function handleFixtureHover(event) {
+      function handleFixturePreviewHover(event) {
+        if (els.fixtureTooltip && !els.fixtureTooltip.hidden) {
+          return;
+        }
         const fixtureRef = resolveFixtureHoverRef(event.target);
         if (!fixtureRef) {
           return;
         }
-        state.hoveredFixture = fixtureRef;
-        showFixtureTooltip(fixtureRef, event);
+        state.hoveredFixturePreview = fixtureRef;
+        showFixturePreviewTooltip(fixtureRef, event);
       }
 
-      function handleFixtureHoverOut(event) {
+      function handleFixturePreviewOut(event) {
         const related = event.relatedTarget;
         if (resolveFixtureHoverRef(related)) {
           return;
         }
-        state.hoveredFixture = null;
-        hideFixtureTooltip();
+        state.hoveredFixturePreview = null;
+        hideFixturePreviewTooltip();
       }
 
-      function handleFixtureHoverMove(event) {
+      function handleFixturePreviewMove(event) {
+        if (els.fixtureTooltip && !els.fixtureTooltip.hidden) {
+          return;
+        }
         const fixtureRef = resolveFixtureHoverRef(event.target);
         if (!fixtureRef) {
           return;
         }
-        state.hoveredFixture = fixtureRef;
-        showFixtureTooltip(fixtureRef, event);
+        state.hoveredFixturePreview = fixtureRef;
+        showFixturePreviewTooltip(fixtureRef, event);
       }
 
       function handleFixtureOpen(event) {
@@ -2611,13 +2726,42 @@
         const weekRecord = state.seasonData.weekRecords[fixtureRef.week - 1];
         const row = weekRecord && weekRecord.teamMap ? weekRecord.teamMap.get(fixtureRef.teamAbbr) : null;
         const matches = row && Array.isArray(row.fixtureMatches) ? row.fixtureMatches : [];
-        const match = matches.length === 1 ? matches[0] : null;
-        if (!match || !match.matchId) {
+        if (!matches.length) {
           return;
         }
+        state.hoveredFixture = fixtureRef;
+        hideFixturePreviewTooltip();
+        showFixtureTooltip(fixtureRef, resolveFixtureAnchorNode(event.target));
         event.preventDefault();
         event.stopPropagation();
-        window.open(`https://www.premierleague.com/en/match/${encodeURIComponent(String(match.matchId))}`, "_blank", "noopener");
+      }
+
+      function handleFixtureTooltipClick(event) {
+        const row = event.target && event.target.closest ? event.target.closest(".fixture-tooltip-match[data-match-id]") : null;
+        if (!row || !row.dataset.matchId) {
+          return;
+        }
+        window.open(`https://www.premierleague.com/en/match/${encodeURIComponent(String(row.dataset.matchId))}`, "_blank", "noopener");
+      }
+
+      function handleDocumentPointerDown(event) {
+        if (!els.fixtureTooltip || els.fixtureTooltip.hidden) {
+          return;
+        }
+        const target = event.target;
+        if ((els.fixtureTooltip && els.fixtureTooltip.contains(target))) {
+          return;
+        }
+        hideFixtureTooltip();
+        state.hoveredFixture = null;
+      }
+
+      function handleDocumentKeydown(event) {
+        if (event.key !== "Escape") {
+          return;
+        }
+        hideFixtureTooltip();
+        state.hoveredFixture = null;
       }
 
       function handleClubHover(event) {
@@ -2769,6 +2913,13 @@
           return null;
         }
         return { teamAbbr, week };
+      }
+
+      function resolveFixtureAnchorNode(target) {
+        if (!target || !target.closest) {
+          return null;
+        }
+        return target.closest(".rank-cell");
       }
 
       function resolveWeekFromEvent(target) {
@@ -3149,7 +3300,28 @@
         els.clubTooltip.hidden = true;
       }
 
-      function showFixtureTooltip(fixtureRef, event) {
+      function showFixturePreviewTooltip(fixtureRef, event) {
+        if (!state.seasonData || !els.fixturePreviewTooltip) {
+          return;
+        }
+        const tooltipHtml = buildFixturePreviewTooltipHtml(fixtureRef);
+        if (!tooltipHtml) {
+          hideFixturePreviewTooltip();
+          return;
+        }
+        els.fixturePreviewTooltip.innerHTML = tooltipHtml;
+        els.fixturePreviewTooltip.hidden = false;
+        positionFixturePreviewTooltip(event);
+      }
+
+      function hideFixturePreviewTooltip() {
+        if (!els.fixturePreviewTooltip) {
+          return;
+        }
+        els.fixturePreviewTooltip.hidden = true;
+      }
+
+      function showFixtureTooltip(fixtureRef, anchorNode) {
         if (!state.seasonData || !els.fixtureTooltip) {
           return;
         }
@@ -3160,7 +3332,7 @@
         }
         els.fixtureTooltip.innerHTML = tooltipHtml;
         els.fixtureTooltip.hidden = false;
-        positionFixtureTooltip(event);
+        positionFixtureTooltip(anchorNode);
       }
 
       function hideFixtureTooltip() {
@@ -3200,18 +3372,33 @@
         els.clubTooltip.style.top = `${clamp(desiredTop, 12, maxTop)}px`;
       }
 
-      function positionFixtureTooltip(event) {
+      function positionFixtureTooltip(anchorNode) {
         if (!els.fixtureTooltip || els.fixtureTooltip.hidden) {
           return;
         }
         const cardRect = els.boardCard.getBoundingClientRect();
         const tooltipRect = els.fixtureTooltip.getBoundingClientRect();
-        const desiredLeft = (event.clientX - cardRect.left) + 14;
-        const desiredTop = (event.clientY - cardRect.top) + 18;
+        const anchorRect = anchorNode && anchorNode.getBoundingClientRect ? anchorNode.getBoundingClientRect() : cardRect;
+        const desiredLeft = (anchorRect.right - cardRect.left) + 12;
+        const desiredTop = (anchorRect.top - cardRect.top) + ((anchorRect.height - tooltipRect.height) / 2);
         const maxLeft = Math.max(12, cardRect.width - tooltipRect.width - 12);
         const maxTop = Math.max(12, cardRect.height - tooltipRect.height - 12);
         els.fixtureTooltip.style.left = `${clamp(desiredLeft, 12, maxLeft)}px`;
         els.fixtureTooltip.style.top = `${clamp(desiredTop, 12, maxTop)}px`;
+      }
+
+      function positionFixturePreviewTooltip(event) {
+        if (!els.fixturePreviewTooltip || els.fixturePreviewTooltip.hidden) {
+          return;
+        }
+        const cardRect = els.boardCard.getBoundingClientRect();
+        const tooltipRect = els.fixturePreviewTooltip.getBoundingClientRect();
+        const desiredLeft = (event.clientX - cardRect.left) + 12;
+        const desiredTop = (event.clientY - cardRect.top) + 14;
+        const maxLeft = Math.max(12, cardRect.width - tooltipRect.width - 12);
+        const maxTop = Math.max(12, cardRect.height - tooltipRect.height - 12);
+        els.fixturePreviewTooltip.style.left = `${clamp(desiredLeft, 12, maxLeft)}px`;
+        els.fixturePreviewTooltip.style.top = `${clamp(desiredTop, 12, maxTop)}px`;
       }
 
       function buildWeekTooltipHtml(weekRecord) {
@@ -3302,10 +3489,32 @@
             </div>
           `;
         }
+        const titleSuffix = matches.length > 1 ? " · choose fixture" : "";
         return `
-          <div class="fixture-tooltip-title">Week ${week}</div>
+          <div class="fixture-tooltip-title">Week ${week}${escapeHtml(titleSuffix)}</div>
           <div class="fixture-tooltip-list">
             ${matches.map((fixture) => renderFixtureTooltipMatch(seasonData, fixture, teamAbbr)).join("")}
+          </div>
+        `;
+      }
+
+      function buildFixturePreviewTooltipHtml({ teamAbbr, week }) {
+        const seasonData = state.seasonData;
+        if (!seasonData) {
+          return "";
+        }
+        const weekRecord = seasonData.weekRecords[week - 1];
+        if (!weekRecord) {
+          return "";
+        }
+        const row = weekRecord.teamMap.get(teamAbbr);
+        const matches = row && Array.isArray(row.fixtureMatches) ? row.fixtureMatches : [];
+        if (!matches.length) {
+          return "";
+        }
+        return `
+          <div class="fixture-preview-list">
+            ${matches.map((fixture) => renderFixturePreviewRow(fixture, teamAbbr)).join("")}
           </div>
         `;
       }
@@ -3338,6 +3547,26 @@
         `;
       }
 
+      function renderFixturePreviewRow(fixture, hoveredTeamAbbr) {
+        if (!fixture || !fixture.home || !fixture.away) {
+          return "";
+        }
+        const homeClass = fixture.completed ? resultOutcome(fixture.homeScore, fixture.awayScore) : "upcoming";
+        const awayClass = fixture.completed ? resultOutcome(fixture.awayScore, fixture.homeScore) : "upcoming";
+        const homeFocusClass = fixture.home.abbr === hoveredTeamAbbr ? " focal" : "";
+        const awayFocusClass = fixture.away.abbr === hoveredTeamAbbr ? " focal" : "";
+        const scoreText = fixture.completed && fixture.homeScore !== null && fixture.awayScore !== null
+          ? `${fixture.homeScore}:${fixture.awayScore}`
+          : "vs";
+        return `
+          <div class="fixture-preview-row">
+            <div class="fixture-preview-team home ${escapeHtml(homeClass)}${homeFocusClass}">${escapeHtml(fixture.home.abbr)}</div>
+            <div class="fixture-preview-score">${escapeHtml(scoreText)}</div>
+            <div class="fixture-preview-team away ${escapeHtml(awayClass)}${awayFocusClass}">${escapeHtml(fixture.away.abbr)}</div>
+          </div>
+        `;
+      }
+
       function getFixtureStatsForDisplay(snapshot, side, completed) {
         if (!snapshot) {
           return { wins: 0, draws: 0, losses: 0, points: 0 };
@@ -3356,12 +3585,13 @@
         const awayClass = fixture.completed ? resultOutcome(fixture.awayScore, fixture.homeScore) : "upcoming";
         const homeFocusClass = fixture.home.abbr === hoveredTeamAbbr ? " focal" : "";
         const awayFocusClass = fixture.away.abbr === hoveredTeamAbbr ? " focal" : "";
+        const matchAttrs = fixture.matchId ? ` class="fixture-tooltip-match selectable" data-match-id="${escapeHtml(fixture.matchId)}"` : ` class="fixture-tooltip-match"`;
         const scoreText = fixture.completed && fixture.homeScore !== null && fixture.awayScore !== null
           ? `${fixture.homeScore}:${fixture.awayScore}`
           : "vs";
         const statusText = fixture.completed ? "Final" : "Upcoming";
         return `
-          <div class="fixture-tooltip-match">
+          <div${matchAttrs}>
             <div class="fixture-tooltip-side home ${escapeHtml(homeClass)}${homeFocusClass}">
               ${fixture.home.id ? `<img class="fixture-tooltip-badge" src="${escapeHtml(getTeamBadgeUrl(fixture.home.id))}" alt="${escapeHtml(fixture.home.name || fixture.home.abbr)} badge">` : ""}
               <div class="fixture-tooltip-team">
