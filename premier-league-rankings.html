@@ -527,9 +527,57 @@
     }
 
     .week-tooltip-line {
-      font-size: 0.84rem;
-      line-height: 1.15;
-      color: var(--text);
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .week-tooltip-team {
+      min-width: 0;
+      padding: 6px 8px;
+      border-radius: 10px;
+      color: #fff;
+      font-size: 0.8rem;
+      line-height: 1.1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      background: #111417;
+    }
+
+    .week-tooltip-team.home {
+      text-align: right;
+    }
+
+    .week-tooltip-team.away {
+      text-align: left;
+    }
+
+    .week-tooltip-team.win {
+      background: #1a5b31;
+    }
+
+    .week-tooltip-team.loss {
+      background: #6c1d1d;
+    }
+
+    .week-tooltip-team.draw {
+      background: #454d55;
+    }
+
+    .week-tooltip-team.upcoming {
+      background: #111417;
+    }
+
+    .week-tooltip-score {
+      padding: 4px 8px;
+      border-radius: 999px;
+      color: rgba(255, 255, 255, 0.92);
+      font-size: 0.78rem;
+      font-weight: 700;
+      line-height: 1;
+      background: rgba(255, 255, 255, 0.08);
       white-space: nowrap;
     }
 
@@ -2788,7 +2836,7 @@
         return `
           <div class="week-tooltip-title">${escapeHtml(title)}</div>
           <div class="week-tooltip-list">
-            ${fixtures.map((fixture) => `<div class="week-tooltip-line">${escapeHtml(formatWeekFixtureLine(fixture))}</div>`).join("")}
+            ${fixtures.map((fixture) => renderWeekTooltipFixture(fixture)).join("")}
           </div>
         `;
       }
@@ -2849,6 +2897,24 @@
           return `${fixture.home.abbr} ${fixture.homeScore}:${fixture.awayScore} ${fixture.away.abbr}`;
         }
         return `${fixture.home.abbr} vs ${fixture.away.abbr}`;
+      }
+
+      function renderWeekTooltipFixture(fixture) {
+        if (!fixture || !fixture.home || !fixture.away) {
+          return `<div class="week-tooltip-line"><div class="week-tooltip-team upcoming">Fixture detail unavailable</div></div>`;
+        }
+        const homeClass = fixture.completed ? resultOutcome(fixture.homeScore, fixture.awayScore) : "upcoming";
+        const awayClass = fixture.completed ? resultOutcome(fixture.awayScore, fixture.homeScore) : "upcoming";
+        const scoreText = fixture.completed && fixture.homeScore !== null && fixture.awayScore !== null
+          ? `${fixture.homeScore}:${fixture.awayScore}`
+          : "vs";
+        return `
+          <div class="week-tooltip-line">
+            <div class="week-tooltip-team home ${escapeHtml(homeClass)}">${escapeHtml(fixture.home.abbr)}</div>
+            <div class="week-tooltip-score">${escapeHtml(scoreText)}</div>
+            <div class="week-tooltip-team away ${escapeHtml(awayClass)}">${escapeHtml(fixture.away.abbr)}</div>
+          </div>
+        `;
       }
 
       function collectTeamSeasonFixtures(seasonData, teamAbbr) {
