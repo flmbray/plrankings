@@ -2257,6 +2257,7 @@
         const actualWeekRecord = actualStandingsWeek ? weekRecords[actualStandingsWeek - 1] : finalWeek;
         const finalOrder = finalWeek ? finalWeek.rankingRows.map((row) => row.team.abbr) : [];
         const fixtureSnapshotMap = buildFixtureSnapshotMap(weekRecords);
+        const lastResolvedWeekByTeam = computeLastResolvedWeekByTeam(weekRecords);
 
         const teamFlows = finalOrder.map((teamAbbr) => ({
           teamAbbr,
@@ -2278,6 +2279,7 @@
           teamFlows,
           weekRecords,
           fixtureSnapshotMap,
+          lastResolvedWeekByTeam,
           actualStandingsWeek,
           actualWeekRecord,
           finalWeek,
@@ -2647,6 +2649,7 @@
         const finalWeek = [...weekRecords].reverse().find((weekRecord) => weekRecord.rankingRows.length) || seasonData.finalWeek;
         const finalOrder = finalWeek ? finalWeek.rankingRows.map((row) => row.team.abbr) : seasonData.finalOrder;
         const fixtureSnapshotMap = buildFixtureSnapshotMap(weekRecords);
+        const lastResolvedWeekByTeam = computeLastResolvedWeekByTeam(weekRecords);
         const teamFlows = finalOrder.map((teamAbbr) => ({
           teamAbbr,
           team: seasonData.teamCatalog.get(teamAbbr) || { abbr: teamAbbr, id: "", name: teamAbbr, shortName: teamAbbr },
@@ -2664,6 +2667,7 @@
           weekRecords,
           finalWeek,
           fixtureSnapshotMap,
+          lastResolvedWeekByTeam,
           guaranteedOutcomeMap: null,
           simulationInfo: {
             active: true,
@@ -3728,7 +3732,10 @@
           ? Number(seasonData.simulationInfo.flowCutoffWeek || 0)
           : 0;
         seasonData.teamFlows.forEach((flow) => {
-          const segments = buildFlowSegments(flow.teamAbbr, flow.points, boardGrid, actualCutoffWeek);
+          const lastResolvedWeek = seasonData.lastResolvedWeekByTeam && seasonData.lastResolvedWeekByTeam.get(flow.teamAbbr)
+            ? Number(seasonData.lastResolvedWeekByTeam.get(flow.teamAbbr))
+            : 0;
+          const segments = buildFlowSegments(flow.teamAbbr, flow.points, boardGrid, actualCutoffWeek, lastResolvedWeek);
           if (!segments.actual && !segments.simulated) {
             return;
           }
@@ -3783,8 +3790,9 @@
         });
       }
 
-      function buildFlowSegments(teamAbbr, points, boardGrid, actualCutoffWeek) {
-        const anchors = buildFlowAnchors(teamAbbr, points, boardGrid);
+      function buildFlowSegments(teamAbbr, points, boardGrid, actualCutoffWeek, maxWeek) {
+        const anchors = buildFlowAnchors(teamAbbr, points, boardGrid)
+          .filter((anchor) => !maxWeek || anchor.week <= maxWeek);
         if (!anchors.length) {
           return { actual: "", simulated: "" };
         }
@@ -3999,6 +4007,20 @@
           });
         });
         return snapshots;
+      }
+
+      function computeLastResolvedWeekByTeam(weekRecords) {
+        const lastResolvedWeekByTeam = new Map();
+        (weekRecords || []).forEach((weekRecord) => {
+          (weekRecord.weekFixtures || []).forEach((fixture) => {
+            if (!fixture || !fixture.completed || !fixture.home || !fixture.away) {
+              return;
+            }
+            lastResolvedWeekByTeam.set(fixture.home.abbr, weekRecord.week);
+            lastResolvedWeekByTeam.set(fixture.away.abbr, weekRecord.week);
+          });
+        });
+        return lastResolvedWeekByTeam;
       }
 
       function cloneFixtureStats(stats) {
