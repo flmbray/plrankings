@@ -1221,6 +1221,20 @@
               <span class="range-value" id="flow-line-value"></span>
             </div>
           </div>
+          <div class="field">
+            <label for="flow-line-highlight-slider">Flow Highlight Thickness</label>
+            <div class="range-wrap">
+              <input id="flow-line-highlight-slider" type="range" min="0" max="14" step="1">
+              <span class="range-value" id="flow-line-highlight-value"></span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="flow-line-outline-slider">Flow Highlight Outline</label>
+            <div class="range-wrap">
+              <input id="flow-line-outline-slider" type="range" min="0" max="5" step="1">
+              <span class="range-value" id="flow-line-outline-value"></span>
+            </div>
+          </div>
           <label class="toggle-card" for="compressed-mode-toggle">
             <input id="compressed-mode-toggle" type="checkbox">
             <strong>Compressed mode</strong>
@@ -1282,6 +1296,8 @@
         cellOpacityPercent: 34,
         cellBlurPx: 4,
         flowLineWidthPx: 4,
+        flowLineHighlightWidthPx: 3,
+        flowLineOutlineWidthPx: 1,
         compressedMode: false
       };
 
@@ -1320,6 +1336,10 @@
         cellBlurValue: document.getElementById("cell-blur-value"),
         flowLineSlider: document.getElementById("flow-line-slider"),
         flowLineValue: document.getElementById("flow-line-value"),
+        flowLineHighlightSlider: document.getElementById("flow-line-highlight-slider"),
+        flowLineHighlightValue: document.getElementById("flow-line-highlight-value"),
+        flowLineOutlineSlider: document.getElementById("flow-line-outline-slider"),
+        flowLineOutlineValue: document.getElementById("flow-line-outline-value"),
         compressedModeToggle: document.getElementById("compressed-mode-toggle"),
         metaStrip: document.getElementById("meta-strip"),
         statusBar: document.getElementById("status-bar"),
@@ -1394,6 +1414,20 @@
           renderStatus();
         });
 
+        els.flowLineHighlightSlider.addEventListener("input", () => {
+          state.settings.flowLineHighlightWidthPx = Number(els.flowLineHighlightSlider.value);
+          applyVisualSettings();
+          saveSettings();
+          renderStatus();
+        });
+
+        els.flowLineOutlineSlider.addEventListener("input", () => {
+          state.settings.flowLineOutlineWidthPx = Number(els.flowLineOutlineSlider.value);
+          applyVisualSettings();
+          saveSettings();
+          renderStatus();
+        });
+
         els.compressedModeToggle.addEventListener("change", () => {
           state.settings.compressedMode = els.compressedModeToggle.checked;
           saveSettings();
@@ -1436,7 +1470,9 @@
         els.headerJson.value = state.settings.headerOverrideText || "";
         els.cellOpacitySlider.value = String(clamp(Number(state.settings.cellOpacityPercent || 34), 0, 100));
         els.cellBlurSlider.value = String(clamp(Number(state.settings.cellBlurPx || 4), 0, 24));
-        els.flowLineSlider.value = String(clamp(Number(state.settings.flowLineWidthPx ?? 12), 0, 12));
+        els.flowLineSlider.value = String(clamp(Number(state.settings.flowLineWidthPx ?? 4), 0, 12));
+        els.flowLineHighlightSlider.value = String(clamp(Number(state.settings.flowLineHighlightWidthPx ?? 8), 0, 14));
+        els.flowLineOutlineSlider.value = String(clamp(Number(state.settings.flowLineOutlineWidthPx ?? 1), 0, 5));
         els.compressedModeToggle.checked = Boolean(state.settings.compressedMode);
         applyVisualSettings();
       }
@@ -2119,14 +2155,18 @@
           `<span class="pill"><strong>Week</strong> ${getSelectedWeek()}</span>`,
           `<span class="pill"><strong>Cell Opacity</strong> ${clamp(Number(state.settings.cellOpacityPercent || 34), 0, 100)}%</span>`,
           `<span class="pill"><strong>Cell Blur</strong> ${clamp(Number(state.settings.cellBlurPx || 4), 0, 24)}px</span>`,
-          `<span class="pill"><strong>Flow Lines</strong> ${clamp(Number(state.settings.flowLineWidthPx ?? 12), 0, 12)}px</span>`,
+          `<span class="pill"><strong>Flow Lines</strong> ${clamp(Number(state.settings.flowLineWidthPx ?? 4), 0, 12)}px</span>`,
+          `<span class="pill"><strong>Flow Highlight</strong> ${clamp(Number(state.settings.flowLineHighlightWidthPx ?? 3), 0, 14)}px</span>`,
+          `<span class="pill"><strong>Flow Outline</strong> ${clamp(Number(state.settings.flowLineOutlineWidthPx ?? 1), 0, 5)}px</span>`,
           `<span class="pill"><strong>Compressed</strong> ${state.settings.compressedMode ? "on" : "off"}</span>`,
           `<span class="pill"><strong>Header Overrides</strong> ${state.settings.enableHeaderOverrides ? "enabled" : "off"}</span>`
         ].join("");
 
         els.cellOpacityValue.textContent = `${clamp(Number(state.settings.cellOpacityPercent || 34), 0, 100)}%`;
         els.cellBlurValue.textContent = `${clamp(Number(state.settings.cellBlurPx || 4), 0, 24)}px`;
-        els.flowLineValue.textContent = `${clamp(Number(state.settings.flowLineWidthPx ?? 12), 0, 12)}px`;
+        els.flowLineValue.textContent = `${clamp(Number(state.settings.flowLineWidthPx ?? 4), 0, 12)}px`;
+        els.flowLineHighlightValue.textContent = `${clamp(Number(state.settings.flowLineHighlightWidthPx ?? 3), 0, 14)}px`;
+        els.flowLineOutlineValue.textContent = `${clamp(Number(state.settings.flowLineOutlineWidthPx ?? 1), 0, 5)}px`;
 
         els.messages.innerHTML = state.messages.map((message) => (
           `<div class="message ${message.type}">${escapeHtml(message.text)}</div>`
@@ -3037,10 +3077,11 @@
       function applyVisualSettings() {
         const opacityPercent = clamp(Number(state.settings.cellOpacityPercent || 34), 0, 100);
         const blurPx = clamp(Number(state.settings.cellBlurPx || 4), 0, 24);
-        const flowLineWidthPx = clamp(Number(state.settings.flowLineWidthPx ?? 12), 0, 12);
-        const flowLineActiveWidthPx = flowLineWidthPx > 0 ? Math.min(14, flowLineWidthPx + 2) : 0;
+        const flowLineWidthPx = clamp(Number(state.settings.flowLineWidthPx ?? 4), 0, 12);
+        const flowLineActiveWidthPx = clamp(Number(state.settings.flowLineHighlightWidthPx ?? 3), 0, 14);
+        const flowLineOutlineWidthPx = clamp(Number(state.settings.flowLineOutlineWidthPx ?? 1), 0, 5);
         const flowHaloWidthPx = flowLineWidthPx > 0 ? flowLineWidthPx + 6 : 0;
-        const flowHaloActiveWidthPx = flowLineWidthPx > 0 ? flowLineWidthPx + 12 : 0;
+        const flowHaloActiveWidthPx = flowLineActiveWidthPx > 0 ? flowLineActiveWidthPx + (flowLineOutlineWidthPx * 2) : 0;
         document.documentElement.style.setProperty("--cell-fill-alpha", (opacityPercent / 100).toFixed(2));
         document.documentElement.style.setProperty("--cell-blur", `${blurPx}px`);
         document.documentElement.style.setProperty("--flow-line-width", `${flowLineWidthPx}px`);
@@ -3056,6 +3097,12 @@
         if (els.flowLineSlider.value !== String(flowLineWidthPx)) {
           els.flowLineSlider.value = String(flowLineWidthPx);
         }
+        if (els.flowLineHighlightSlider.value !== String(flowLineActiveWidthPx)) {
+          els.flowLineHighlightSlider.value = String(flowLineActiveWidthPx);
+        }
+        if (els.flowLineOutlineSlider.value !== String(flowLineOutlineWidthPx)) {
+          els.flowLineOutlineSlider.value = String(flowLineOutlineWidthPx);
+        }
         if (els.cellOpacityValue) {
           els.cellOpacityValue.textContent = `${opacityPercent}%`;
         }
@@ -3064,6 +3111,12 @@
         }
         if (els.flowLineValue) {
           els.flowLineValue.textContent = `${flowLineWidthPx}px`;
+        }
+        if (els.flowLineHighlightValue) {
+          els.flowLineHighlightValue.textContent = `${flowLineActiveWidthPx}px`;
+        }
+        if (els.flowLineOutlineValue) {
+          els.flowLineOutlineValue.textContent = `${flowLineOutlineWidthPx}px`;
         }
       }
 
