@@ -416,6 +416,56 @@
       flex: 1 1 auto;
     }
 
+    .board-head-tools {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      flex: 0 0 auto;
+    }
+
+    .simulate-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 6px;
+      min-width: 170px;
+    }
+
+    .board-progress {
+      width: 170px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .board-progress[hidden] {
+      display: none;
+    }
+
+    .board-progress-track {
+      width: 100%;
+      height: 7px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .board-progress-fill {
+      width: 0%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, rgba(130, 214, 243, 0.95), rgba(189, 242, 113, 0.95));
+      transition: width 120ms ease;
+    }
+
+    .board-progress-label {
+      color: var(--muted);
+      font-size: 0.75rem;
+      text-align: right;
+      white-space: nowrap;
+    }
+
     .icon-btn {
       flex: 0 0 auto;
       width: 42px;
@@ -477,6 +527,11 @@
       opacity: 0.48;
       transition: opacity 140ms ease, stroke-width 140ms ease;
       filter: drop-shadow(0 8px 10px rgba(0, 0, 0, 0.36));
+    }
+
+    .flow-path.simulated {
+      stroke-dasharray: 0.001 8;
+      stroke-linecap: round;
     }
 
     .flow-team.active .flow-path,
@@ -544,6 +599,7 @@
       overflow: hidden;
       text-overflow: ellipsis;
       background: #111417;
+      border: 1px dashed transparent;
     }
 
     .week-tooltip-team.home {
@@ -568,6 +624,10 @@
 
     .week-tooltip-team.upcoming {
       background: #111417;
+    }
+
+    .week-tooltip-team.simulated {
+      border-color: rgba(255, 255, 255, 0.7);
     }
 
     .week-tooltip-score {
@@ -682,6 +742,31 @@
       column-gap: 10px;
     }
 
+    .club-tooltip-prob-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .club-tooltip-prob {
+      padding: 5px 6px;
+      border-radius: 10px;
+      text-align: center;
+      font-size: 0.68rem;
+      line-height: 1.1;
+      color: rgba(255, 255, 255, 0.82);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      white-space: nowrap;
+    }
+
+    .club-tooltip-prob strong {
+      display: inline;
+      color: #fff;
+      font-size: inherit;
+    }
+
     .club-tooltip-fixture {
       break-inside: avoid;
       display: flex;
@@ -696,6 +781,7 @@
       font-size: 0.76rem;
       line-height: 1.12;
       background: #101010;
+      border: 1px dashed transparent;
     }
 
     .club-tooltip-fixture.win {
@@ -714,22 +800,19 @@
       background: #111417;
     }
 
-    .club-tooltip-fixture-main {
-      min-width: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 1px;
+    .club-tooltip-fixture.simulated {
+      border-color: rgba(255, 255, 255, 0.7);
     }
 
-    .club-tooltip-fixture-week {
-      color: rgba(255, 255, 255, 0.74);
-      font-size: 0.68rem;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
+    .club-tooltip-fixture-main {
+      min-width: 0;
+      display: block;
     }
 
     .club-tooltip-fixture-text {
       white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .club-tooltip-fixture-points {
@@ -1504,7 +1587,16 @@
       <section class="card board-card">
         <div class="board-card-head">
           <div class="board-summary" id="board-summary"></div>
-          <button class="icon-btn" id="maximize-board-btn" type="button" aria-label="Maximize results panel" title="Maximize results panel">⛶</button>
+          <div class="board-head-tools">
+            <div class="simulate-wrap">
+              <button id="simulate-btn" type="button">Simulate</button>
+              <div class="board-progress" id="simulation-progress" hidden>
+                <div class="board-progress-track"><div class="board-progress-fill" id="simulation-progress-fill"></div></div>
+                <div class="board-progress-label" id="simulation-progress-label">0%</div>
+              </div>
+            </div>
+            <button class="icon-btn" id="maximize-board-btn" type="button" aria-label="Maximize results panel" title="Maximize results panel">⛶</button>
+          </div>
         </div>
         <div class="board-scroll">
           <div class="board-stage" id="board-stage">
@@ -1546,6 +1638,14 @@
         rowGap: 12,
         padding: 0
       };
+      const DEFAULT_TEAM_METRICS = {
+        strength: 0,
+        form: 0,
+        homeAttack: 1,
+        awayAttack: 1,
+        homeDefense: 1,
+        awayDefense: 1
+      };
       const BUNDLED_MANIFEST = {"1992-1993":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json","38":"38.json"},"1993-1994":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json","38":"38.json","39":"39.json","40":"40.json"},"1994-1995":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json"},"1995-1996":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json","38":"38.json"},"1996-1997":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json","38":"38.json","39":"39.json","40":"40.json","41":"41.json"},"1997-1998":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json","38":"38.json"},"1998-1999":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json","38":"38.json","39":"39.json","40":"40.json"},"1999-2000":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json"},"2000-2001":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json","38":"38.json"},"2001-2002":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json","38":"38.json"},"2002-2003":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json","38":"38.json"},"2003-2004":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json"},"2004-2005":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json","38":"38.json","39":"39.json"},"2005-2006":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json","38":"38.json"},"2006-2007":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json","38":"38.json","39":"39.json"},"2007-2008":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json","38":"38.json","39":"39.json"},"2008-2009":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json","38":"38.json","39":"39.json"},"2009-2010":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json","38":"38.json"},"2010-2011":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json"},"2011-2012":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json"},"2012-2013":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json","38":"38.json","39":"39.json"},"2013-2014":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json","38":"38.json","39":"39.json","40":"40.json"},"2014-2015":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json","38":"38.json"},"2015-2016":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json","38":"38.json"},"2016-2017":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json","38":"38.json"},"2017-2018":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json","38":"38.json"},"2018-2019":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json","38":"38.json"},"2019-2020":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json","38":"38.json"},"2020-2021":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json","38":"38.json"},"2021-2022":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json","38":"38.json"},"2022-2023":{"1":"1.json","2":"2.json","3":"3.json","4":"4.json","5":"5.json","6":"6.json","7":"7.json","8":"8.json","9":"9.json","10":"10.json","11":"11.json","12":"12.json","13":"13.json","14":"14.json","15":"15.json","16":"16.json","17":"17.json","18":"18.json","19":"19.json","20":"20.json","21":"21.json","22":"22.json","23":"23.json","24":"24.json","25":"25.json","26":"26.json","27":"27.json","28":"28.json","29":"29.json","30":"30.json","31":"31.json","32":"32.json","33":"33.json","34":"34.json","35":"35.json","36":"36.json","37":"37.json","38":"38.json"},"2023-2024":{"1":"gameweek-12269.json","2":"gameweek-12270.json","3":"gameweek-12271.json","4":"gameweek-12272.json","5":"gameweek-12273.json","6":"gameweek-12274.json","7":"gameweek-12275.json","8":"gameweek-12276.json","9":"gameweek-12277.json","10":"gameweek-12278.json","11":"gameweek-12279.json","12":"gameweek-12280.json","13":"gameweek-12281.json","14":"gameweek-12282.json","15":"gameweek-12283.json","16":"gameweek-12284.json","17":"gameweek-12285.json","18":"gameweek-12286.json","19":"gameweek-12287.json","20":"gameweek-12288.json","21":"gameweek-12289.json","22":"gameweek-12290.json","23":"gameweek-12291.json","24":"gameweek-12292.json","25":"gameweek-12293.json","26":"gameweek-12294.json","27":"gameweek-12295.json","28":"gameweek-12296.json","29":"gameweek-12297.json","30":"gameweek-12298.json","31":"gameweek-12299.json","32":"gameweek-12300.json","33":"gameweek-12301.json","34":"gameweek-12302.json","35":"gameweek-12303.json","36":"gameweek-12304.json","37":"gameweek-12305.json","38":"gameweek-12306.json"},"2024-2025":{"1":"gameweekNumber-1.json","2":"gameweekNumber-2.json","3":"gameweekNumber-3.json","4":"gameweekNumber-4.json","5":"gameweekNumber-5.json","6":"gameweekNumber-6.json","7":"gameweekNumber-7.json","8":"gameweekNumber-8.json","9":"gameweekNumber-9.json","10":"gameweekNumber-10.json","11":"gameweekNumber-11.json","12":"gameweekNumber-12.json","13":"gameweekNumber-13.json","14":"gameweekNumber-14.json","15":"gameweekNumber-15.json","16":"gameweekNumber-16.json","17":"gameweekNumber-17.json","18":"gameweekNumber-18.json","19":"gameweekNumber-19.json","20":"gameweekNumber-20.json","21":"gameweekNumber-21.json","22":"gameweekNumber-22.json","23":"gameweekNumber-23.json","24":"gameweekNumber-24.json","25":"gameweekNumber-25.json","26":"gameweekNumber-26.json","27":"gameweekNumber-27.json","28":"gameweekNumber-28.json","29":"gameweekNumber-29.json","30":"gameweekNumber-30.json","31":"gameweekNumber-31.json","32":"gameweekNumber-32.json","33":"gameweekNumber-33.json","34":"gameweekNumber-34.json","35":"gameweekNumber-35.json","36":"gameweekNumber-36.json","37":"gameweekNumber-37.json","38":"gameweekNumber-38.json"}};
 
       const defaultSettings = {
@@ -1565,6 +1665,13 @@
         seasonData: null,
         loading: false,
         boardMaximized: false,
+        simulation: {
+          running: false,
+          active: false,
+          progress: 0,
+          label: "",
+          result: null
+        },
         highlightedTeam: null,
         hoveredWeek: null,
         hoveredClub: null,
@@ -1612,6 +1719,10 @@
         boardCard: document.querySelector(".board-card"),
         boardScroll: document.querySelector(".board-scroll"),
         appShell: document.querySelector(".app-shell"),
+        simulateBtn: document.getElementById("simulate-btn"),
+        simulationProgress: document.getElementById("simulation-progress"),
+        simulationProgressFill: document.getElementById("simulation-progress-fill"),
+        simulationProgressLabel: document.getElementById("simulation-progress-label"),
         maximizeBoardBtn: document.getElementById("maximize-board-btn"),
         weekTooltip: document.getElementById("week-tooltip"),
         clubTooltip: document.getElementById("club-tooltip"),
@@ -1699,6 +1810,10 @@
           renderBoard();
         });
 
+        els.simulateBtn.addEventListener("click", () => {
+          void toggleSimulation();
+        });
+
         els.maximizeBoardBtn.addEventListener("click", () => {
           state.boardMaximized = !state.boardMaximized;
           applyBoardMaximizedState();
@@ -1746,6 +1861,7 @@
         els.flowLineOutlineSlider.value = String(clamp(Number(state.settings.flowLineOutlineWidthPx ?? 1), 0, 5));
         els.compressedModeToggle.checked = Boolean(state.settings.compressedMode);
         applyVisualSettings();
+        renderSimulationUi();
       }
 
       function updateWeekSelect() {
@@ -1771,6 +1887,7 @@
         saveSettings();
 
         setLoading(true);
+        resetSimulationState();
         state.highlightedTeam = null;
         state.pinnedTeams.clear();
         state.messages = [];
@@ -1822,6 +1939,7 @@
             text: error && error.message ? error.message : "Season load failed."
           }];
           state.seasonData = null;
+          resetSimulationState();
         } finally {
           setLoading(false);
           renderStatus();
@@ -2168,6 +2286,561 @@
         };
       }
 
+      async function runSeasonSimulation(seasonData, onProgress) {
+        const runCount = 8000;
+        const batchSize = 80;
+        const simulationStartWeek = getSimulationStartWeek(seasonData);
+        const anchorWeek = simulationStartWeek > 1
+          ? seasonData.weekRecords[simulationStartWeek - 2]
+          : null;
+        const baseStatsMap = anchorWeek && anchorWeek.teamMap
+          ? cloneStatsMapFromWeek(anchorWeek)
+          : createEmptyStatsMap(seasonData);
+
+        const simulationModel = buildSimulationModel(seasonData);
+        const teamAbbrs = [...seasonData.teamCatalog.keys()].sort();
+        const aggregate = new Map(teamAbbrs.map((teamAbbr) => [teamAbbr, {
+          pointsSamples: [],
+          goalDiffSamples: [],
+          goalsForSamples: [],
+          positionCounts: Array.from({ length: seasonData.teamCount }, () => 0)
+        }]));
+        const fixtureAggregate = new Map();
+        let completedRuns = 0;
+
+        onProgress(0, "Running simulation");
+
+        while (completedRuns < runCount) {
+          const target = Math.min(runCount, completedRuns + batchSize);
+          for (; completedRuns < target; completedRuns += 1) {
+            const run = simulateSeasonOnce(seasonData, simulationModel, baseStatsMap, simulationStartWeek);
+            run.finalRows.forEach((row) => {
+              const teamAggregate = aggregate.get(row.team.abbr);
+              if (!teamAggregate) {
+                return;
+              }
+              teamAggregate.pointsSamples.push(row.points);
+              teamAggregate.goalDiffSamples.push(row.goalDiff);
+              teamAggregate.goalsForSamples.push(row.goalsFor);
+              if (teamAggregate.positionCounts[row.rank - 1] != null) {
+                teamAggregate.positionCounts[row.rank - 1] += 1;
+              }
+            });
+            run.simulatedFixtures.forEach((fixture) => {
+              let entry = fixtureAggregate.get(fixture.key);
+              if (!entry) {
+                entry = {
+                  fixture,
+                  homeGoalSum: 0,
+                  awayGoalSum: 0,
+                  scoreCounts: new Map()
+                };
+                fixtureAggregate.set(fixture.key, entry);
+              }
+              entry.homeGoalSum += fixture.homeScore;
+              entry.awayGoalSum += fixture.awayScore;
+              const scoreKey = `${fixture.homeScore}:${fixture.awayScore}`;
+              entry.scoreCounts.set(scoreKey, (entry.scoreCounts.get(scoreKey) || 0) + 1);
+            });
+          }
+          onProgress(completedRuns / runCount, "Running simulation");
+          await waitForNextFrame();
+        }
+
+        const summaryByTeam = buildSimulationSummaryMap(aggregate, runCount);
+        const projectedFixtureMap = buildProjectedFixtureMap(fixtureAggregate, runCount);
+        const displaySeasonData = buildSimulationDisplaySeason(seasonData, projectedFixtureMap, summaryByTeam, runCount, simulationStartWeek);
+        return {
+          runCount,
+          summaryByTeam,
+          projectedFixtureMap,
+          displaySeasonData
+        };
+      }
+
+      function simulateSeasonOnce(seasonData, simulationModel, baseStatsMap, simulationStartWeek) {
+        const statsMap = cloneTeamStatsMap(baseStatsMap);
+        const simulatedFixtures = [];
+
+        for (let week = simulationStartWeek; week <= seasonData.weekCount; week += 1) {
+          const baseWeek = seasonData.weekRecords[week - 1];
+          const baseFixtures = baseWeek && Array.isArray(baseWeek.weekFixtures) ? baseWeek.weekFixtures : [];
+          baseFixtures.forEach((fixture) => {
+            if (fixture.completed && fixture.homeScore !== null && fixture.awayScore !== null) {
+              applyFixtureToTeamStatsMap(statsMap, fixture);
+              return;
+            }
+            const sampled = sampleFixtureScore(fixture, simulationModel, statsMap);
+            const projectedFixture = {
+              ...fixture,
+              homeScore: sampled.homeScore,
+              awayScore: sampled.awayScore,
+              completed: true,
+              simulated: true
+            };
+            simulatedFixtures.push(projectedFixture);
+            if (!projectedFixture.completed || projectedFixture.homeScore === null || projectedFixture.awayScore === null) {
+              return;
+            }
+            applyFixtureToTeamStatsMap(statsMap, projectedFixture);
+          });
+        }
+
+        const finalRows = buildStandingsTableFromStatsMap(statsMap);
+        return {
+          simulatedFixtures,
+          finalRows,
+          finalByTeam: new Map(finalRows.map((row) => [row.team.abbr, row]))
+        };
+      }
+
+      function buildSimulationModel(seasonData) {
+        const completedFixtures = seasonData.weekRecords
+          .flatMap((weekRecord) => Array.isArray(weekRecord.weekFixtures) ? weekRecord.weekFixtures.map((fixture) => ({ ...fixture, week: weekRecord.week })) : [])
+          .filter((fixture) => fixture.completed && fixture.homeScore !== null && fixture.awayScore !== null);
+        const teams = new Map([...seasonData.teamCatalog.entries()].map(([abbr, team]) => [abbr, {
+          team,
+          games: 0,
+          homeGames: 0,
+          awayGames: 0,
+          points: 0,
+          goalsFor: 0,
+          goalsAgainst: 0,
+          goalDiff: 0,
+          homeGoalsFor: 0,
+          homeGoalsAgainst: 0,
+          awayGoalsFor: 0,
+          awayGoalsAgainst: 0,
+          recent: []
+        }]));
+        let totalHomeGoals = 0;
+        let totalAwayGoals = 0;
+
+        completedFixtures.sort((left, right) => {
+          if (left.week !== right.week) {
+            return left.week - right.week;
+          }
+          return String(left.key || "").localeCompare(String(right.key || ""));
+        }).forEach((fixture) => {
+          const home = teams.get(fixture.home.abbr) || createBlankSimulationTeam(seasonData.teamCatalog.get(fixture.home.abbr) || fixture.home);
+          const away = teams.get(fixture.away.abbr) || createBlankSimulationTeam(seasonData.teamCatalog.get(fixture.away.abbr) || fixture.away);
+          teams.set(fixture.home.abbr, home);
+          teams.set(fixture.away.abbr, away);
+
+          totalHomeGoals += numberOrZero(fixture.homeScore);
+          totalAwayGoals += numberOrZero(fixture.awayScore);
+
+          const homeOutcome = resultOutcome(fixture.homeScore, fixture.awayScore);
+          const awayOutcome = resultOutcome(fixture.awayScore, fixture.homeScore);
+          const homePoints = pointsForOutcome(homeOutcome);
+          const awayPoints = pointsForOutcome(awayOutcome);
+
+          home.games += 1;
+          home.homeGames += 1;
+          home.points += homePoints;
+          home.goalsFor += fixture.homeScore;
+          home.goalsAgainst += fixture.awayScore;
+          home.goalDiff += fixture.homeScore - fixture.awayScore;
+          home.homeGoalsFor += fixture.homeScore;
+          home.homeGoalsAgainst += fixture.awayScore;
+          home.recent.push({ week: fixture.week, points: homePoints, goalDiff: fixture.homeScore - fixture.awayScore });
+
+          away.games += 1;
+          away.awayGames += 1;
+          away.points += awayPoints;
+          away.goalsFor += fixture.awayScore;
+          away.goalsAgainst += fixture.homeScore;
+          away.goalDiff += fixture.awayScore - fixture.homeScore;
+          away.awayGoalsFor += fixture.awayScore;
+          away.awayGoalsAgainst += fixture.homeScore;
+          away.recent.push({ week: fixture.week, points: awayPoints, goalDiff: fixture.awayScore - fixture.homeScore });
+        });
+
+        const matchCount = Math.max(1, completedFixtures.length);
+        const leagueHomeGoals = totalHomeGoals / matchCount || 1.55;
+        const leagueAwayGoals = totalAwayGoals / matchCount || 1.25;
+        const leaguePpg = [...teams.values()].reduce((total, team) => total + (team.games ? (team.points / team.games) : 0), 0) / Math.max(1, teams.size);
+        const teamMetrics = new Map();
+
+        teams.forEach((team, teamAbbr) => {
+          const games = Math.max(1, team.games);
+          const homeGames = Math.max(1, team.homeGames);
+          const awayGames = Math.max(1, team.awayGames);
+          const ppg = team.points / games;
+          const gdPerGame = team.goalDiff / games;
+          const recent = team.recent.slice(-5);
+          const recentPpg = recent.length ? sum(recent, "points") / recent.length : ppg;
+          const recentGd = recent.length ? sum(recent, "goalDiff") / recent.length : gdPerGame;
+
+          const homeGoalsForRate = blendRate(team.homeGoalsFor / homeGames, team.goalsFor / games, team.homeGames, 4);
+          const awayGoalsForRate = blendRate(team.awayGoalsFor / awayGames, team.goalsFor / games, team.awayGames, 4);
+          const homeGoalsAgainstRate = blendRate(team.homeGoalsAgainst / homeGames, team.goalsAgainst / games, team.homeGames, 4);
+          const awayGoalsAgainstRate = blendRate(team.awayGoalsAgainst / awayGames, team.goalsAgainst / games, team.awayGames, 4);
+
+          teamMetrics.set(teamAbbr, {
+            strength: ((ppg - leaguePpg) * 0.72) + (gdPerGame * 0.18),
+            form: ((recentPpg - ppg) * 0.65) + ((recentGd - gdPerGame) * 0.16),
+            homeAttack: clamp(homeGoalsForRate / Math.max(0.15, leagueHomeGoals), 0.5, 1.75),
+            awayAttack: clamp(awayGoalsForRate / Math.max(0.15, leagueAwayGoals), 0.5, 1.75),
+            homeDefense: clamp(homeGoalsAgainstRate / Math.max(0.15, leagueAwayGoals), 0.55, 1.8),
+            awayDefense: clamp(awayGoalsAgainstRate / Math.max(0.15, leagueHomeGoals), 0.55, 1.8)
+          });
+        });
+
+        return {
+          leagueHomeGoals,
+          leagueAwayGoals,
+          teamMetrics
+        };
+      }
+
+      function createBlankSimulationTeam(team) {
+        return {
+          team,
+          games: 0,
+          homeGames: 0,
+          awayGames: 0,
+          points: 0,
+          goalsFor: 0,
+          goalsAgainst: 0,
+          goalDiff: 0,
+          homeGoalsFor: 0,
+          homeGoalsAgainst: 0,
+          awayGoalsFor: 0,
+          awayGoalsAgainst: 0,
+          recent: []
+        };
+      }
+
+      function sampleFixtureScore(fixture, simulationModel, statsMap) {
+        const homeMetrics = simulationModel.teamMetrics.get(fixture.home.abbr) || DEFAULT_TEAM_METRICS;
+        const awayMetrics = simulationModel.teamMetrics.get(fixture.away.abbr) || DEFAULT_TEAM_METRICS;
+        const homeStats = statsMap.get(fixture.home.abbr);
+        const awayStats = statsMap.get(fixture.away.abbr);
+        const homePlayed = Math.max(1, getPlayedCountFromStats(homeStats));
+        const awayPlayed = Math.max(1, getPlayedCountFromStats(awayStats));
+        const homeLiveStrength = ((homeStats ? homeStats.points : 0) / homePlayed) + (((homeStats ? homeStats.goalDiff : 0) / homePlayed) * 0.18);
+        const awayLiveStrength = ((awayStats ? awayStats.points : 0) / awayPlayed) + (((awayStats ? awayStats.goalDiff : 0) / awayPlayed) * 0.18);
+        const strengthEdge = clamp(((homeMetrics.strength - awayMetrics.strength) * 0.32) + ((homeLiveStrength - awayLiveStrength) * 0.12), -0.65, 0.65);
+        const formEdge = clamp((homeMetrics.form - awayMetrics.form) * 0.22, -0.35, 0.35);
+        const homeLambda = clamp(
+          simulationModel.leagueHomeGoals
+            * homeMetrics.homeAttack
+            * awayMetrics.awayDefense
+            * Math.exp(strengthEdge + formEdge),
+          0.1,
+          4.8
+        );
+        const awayLambda = clamp(
+          simulationModel.leagueAwayGoals
+            * awayMetrics.awayAttack
+            * homeMetrics.homeDefense
+            * Math.exp(-(strengthEdge + formEdge)),
+          0.08,
+          4.4
+        );
+        return {
+          homeScore: samplePoisson(homeLambda),
+          awayScore: samplePoisson(awayLambda)
+        };
+      }
+
+      function buildSimulationSummaryMap(aggregate, runCount) {
+        const summaryByTeam = new Map();
+        aggregate.forEach((entry, teamAbbr) => {
+          const sortedPoints = [...entry.pointsSamples].sort((left, right) => left - right);
+          const avgPoints = average(entry.pointsSamples);
+          const avgGoalDiff = average(entry.goalDiffSamples);
+          const avgGoalsFor = average(entry.goalsForSamples);
+          const positionProbabilities = entry.positionCounts.map((count) => count / runCount);
+          const mostLikelyPosition = positionProbabilities.reduce((bestIndex, value, index, values) => (
+            value > values[bestIndex] ? index : bestIndex
+          ), 0) + 1;
+          summaryByTeam.set(teamAbbr, {
+            avgPoints,
+            avgGoalDiff,
+            avgGoalsFor,
+            rangeLow: percentile(sortedPoints, 0.1),
+            rangeHigh: percentile(sortedPoints, 0.9),
+            positionProbabilities,
+            mostLikelyPosition,
+            titleProbability: positionProbabilities[0] || 0,
+            top4Probability: positionProbabilities.slice(0, 4).reduce((total, value) => total + value, 0),
+            relegationProbability: positionProbabilities.slice(-3).reduce((total, value) => total + value, 0)
+          });
+        });
+        return summaryByTeam;
+      }
+
+      function buildProjectedFixtureMap(fixtureAggregate, runCount) {
+        const projectedFixtureMap = new Map();
+        fixtureAggregate.forEach((entry, key) => {
+          const averageHomeGoals = entry.homeGoalSum / runCount;
+          const averageAwayGoals = entry.awayGoalSum / runCount;
+          let bestScoreKey = "";
+          let bestScoreCount = -1;
+          let bestDistance = Number.POSITIVE_INFINITY;
+          entry.scoreCounts.forEach((count, scoreKey) => {
+            const [homeText, awayText] = scoreKey.split(":");
+            const homeScore = Number(homeText);
+            const awayScore = Number(awayText);
+            const distance = Math.abs(homeScore - averageHomeGoals) + Math.abs(awayScore - averageAwayGoals);
+            if (count > bestScoreCount || (count === bestScoreCount && distance < bestDistance)) {
+              bestScoreCount = count;
+              bestDistance = distance;
+              bestScoreKey = scoreKey;
+            }
+          });
+          const [homeText, awayText] = bestScoreKey.split(":");
+          projectedFixtureMap.set(key, {
+            ...entry.fixture,
+            homeScore: Number(homeText),
+            awayScore: Number(awayText),
+            completed: true,
+            simulated: true
+          });
+        });
+        return projectedFixtureMap;
+      }
+
+      function buildSimulationDisplaySeason(seasonData, projectedFixtureMap, summaryByTeam, runCount, simulationStartWeek) {
+        const anchorWeek = simulationStartWeek > 1
+          ? seasonData.weekRecords[simulationStartWeek - 2]
+          : null;
+        const statsMap = anchorWeek && anchorWeek.teamMap
+          ? cloneStatsMapFromWeek(anchorWeek)
+          : createEmptyStatsMap(seasonData);
+        const weekRecords = seasonData.weekRecords.map((weekRecord) => {
+          if (weekRecord.week < simulationStartWeek) {
+            return weekRecord;
+          }
+          const projectedFixtures = (weekRecord.weekFixtures || []).map((fixture) => (
+            fixture.completed && fixture.homeScore !== null && fixture.awayScore !== null
+              ? { ...fixture, simulated: false }
+              : ({ ...(projectedFixtureMap.get(fixture.key) || fixture), simulated: true, completed: true })
+          ));
+          projectedFixtures.forEach((fixture) => {
+            if (!fixture.completed || fixture.homeScore === null || fixture.awayScore === null) {
+              return;
+            }
+            applyFixtureToTeamStatsMap(statsMap, fixture);
+          });
+          const matchesFrame = buildMatchesFrameFromFixtures(projectedFixtures);
+          const standingsFrame = {
+            week: weekRecord.week,
+            table: buildStandingsTableFromStatsMap(statsMap)
+          };
+          const rankingRows = buildRankingRowsForWeek(standingsFrame, matchesFrame, weekRecord.week);
+          return {
+            week: weekRecord.week,
+            carriedForward: false,
+            standingsSource: "simulation projection",
+            matchesSource: "simulation projection",
+            weekStatus: weekRecord.weekStatus,
+            weekFixtures: projectedFixtures,
+            weekTeamResults: summarizeWeekTeamResults(matchesFrame.byTeam),
+            rankingRows,
+            teamMap: new Map(rankingRows.map((row) => [row.team.abbr, row])),
+            simulatedWeek: true
+          };
+        });
+        const finalWeek = [...weekRecords].reverse().find((weekRecord) => weekRecord.rankingRows.length) || seasonData.finalWeek;
+        const finalOrder = finalWeek ? finalWeek.rankingRows.map((row) => row.team.abbr) : seasonData.finalOrder;
+        const fixtureSnapshotMap = buildFixtureSnapshotMap(weekRecords);
+        const teamFlows = finalOrder.map((teamAbbr) => ({
+          teamAbbr,
+          team: seasonData.teamCatalog.get(teamAbbr) || { abbr: teamAbbr, id: "", name: teamAbbr, shortName: teamAbbr },
+          color: colorForTeam(teamAbbr),
+          points: weekRecords.map((weekRecord) => {
+            const teamWeek = weekRecord.teamMap.get(teamAbbr);
+            return teamWeek ? { week: weekRecord.week, rank: teamWeek.rank } : null;
+          }).filter(Boolean)
+        }));
+
+        return {
+          ...seasonData,
+          finalOrder,
+          teamFlows,
+          weekRecords,
+          finalWeek,
+          fixtureSnapshotMap,
+          guaranteedOutcomeMap: null,
+          simulationInfo: {
+            active: true,
+            runCount,
+            simulationStartWeek,
+            flowCutoffWeek: Math.max(0, simulationStartWeek - 1),
+            summaryByTeam
+          }
+        };
+      }
+
+      function cloneStatsMapFromWeek(weekRecord) {
+        const statsMap = new Map();
+        if (!weekRecord || !weekRecord.teamMap) {
+          return statsMap;
+        }
+        weekRecord.teamMap.forEach((row, teamAbbr) => {
+          statsMap.set(teamAbbr, {
+            team: { ...row.team },
+            wins: row.wins,
+            draws: row.draws,
+            losses: row.losses,
+            points: row.points,
+            goalsFor: row.goalsFor,
+            goalsAgainst: row.goalsAgainst,
+            goalDiff: row.goalDiff
+          });
+        });
+        return statsMap;
+      }
+
+      function createEmptyStatsMap(seasonData) {
+        const statsMap = new Map();
+        if (!seasonData || !seasonData.teamCatalog) {
+          return statsMap;
+        }
+        seasonData.teamCatalog.forEach((team, teamAbbr) => {
+          statsMap.set(teamAbbr, {
+            team: { ...team },
+            wins: 0,
+            draws: 0,
+            losses: 0,
+            points: 0,
+            goalsFor: 0,
+            goalsAgainst: 0,
+            goalDiff: 0
+          });
+        });
+        return statsMap;
+      }
+
+      function cloneTeamStatsMap(statsMap) {
+        return new Map([...statsMap.entries()].map(([teamAbbr, stats]) => [teamAbbr, { ...stats, team: { ...stats.team } }]));
+      }
+
+      function buildMatchesFrameFromFixtures(fixtures) {
+        const byTeam = new Map();
+        const normalizedFixtures = [];
+        (fixtures || []).forEach((fixture) => {
+          if (!fixture || !fixture.home || !fixture.away) {
+            return;
+          }
+          appendFixtureSummary(byTeam, fixture.home.abbr, summarizeProjectedFixture(fixture, true));
+          appendFixtureSummary(byTeam, fixture.away.abbr, summarizeProjectedFixture(fixture, false));
+          normalizedFixtures.push({
+            ...fixture,
+            completed: Boolean(fixture.completed)
+          });
+        });
+        return { byTeam, fixtures: normalizedFixtures };
+      }
+
+      function summarizeProjectedFixture(fixture, isHome) {
+        const opponent = isHome ? fixture.away : fixture.home;
+        const ownScore = isHome ? fixture.homeScore : fixture.awayScore;
+        const opponentScore = isHome ? fixture.awayScore : fixture.homeScore;
+        const prefix = isHome ? "vs" : "@";
+        if (fixture.completed && ownScore !== null && opponentScore !== null) {
+          const marker = ownScore > opponentScore ? "+" : (ownScore < opponentScore ? "-" : "=");
+          return {
+            text: `${prefix} ${opponent.abbr} (${marker}${ownScore}:${opponentScore})`,
+            hasResult: true,
+            outcome: resultOutcome(ownScore, opponentScore)
+          };
+        }
+        return {
+          text: `${prefix} ${opponent.abbr}`,
+          hasResult: false,
+          outcome: null
+        };
+      }
+
+      function applyFixtureToTeamStatsMap(statsMap, fixture) {
+        const home = statsMap.get(fixture.home.abbr);
+        const away = statsMap.get(fixture.away.abbr);
+        if (!home || !away) {
+          return;
+        }
+        home.goalsFor += fixture.homeScore;
+        home.goalsAgainst += fixture.awayScore;
+        home.goalDiff = home.goalsFor - home.goalsAgainst;
+        away.goalsFor += fixture.awayScore;
+        away.goalsAgainst += fixture.homeScore;
+        away.goalDiff = away.goalsFor - away.goalsAgainst;
+
+        if (fixture.homeScore > fixture.awayScore) {
+          home.wins += 1;
+          home.points += 3;
+          away.losses += 1;
+        } else if (fixture.homeScore < fixture.awayScore) {
+          away.wins += 1;
+          away.points += 3;
+          home.losses += 1;
+        } else {
+          home.draws += 1;
+          away.draws += 1;
+          home.points += 1;
+          away.points += 1;
+        }
+      }
+
+      function buildStandingsTableFromStatsMap(statsMap) {
+        return [...statsMap.values()].sort((left, right) => {
+          if (right.points !== left.points) return right.points - left.points;
+          if (right.goalDiff !== left.goalDiff) return right.goalDiff - left.goalDiff;
+          if (right.goalsFor !== left.goalsFor) return right.goalsFor - left.goalsFor;
+          return left.team.abbr.localeCompare(right.team.abbr);
+        }).map((entry, index) => ({
+          rank: index + 1,
+          team: { ...entry.team },
+          points: entry.points,
+          wins: entry.wins,
+          draws: entry.draws,
+          losses: entry.losses,
+          goalsFor: entry.goalsFor,
+          goalsAgainst: entry.goalsAgainst,
+          goalDiff: entry.goalDiff
+        }));
+      }
+
+      function blendRate(specificRate, overallRate, sampleSize, priorWeight) {
+        return ((specificRate * sampleSize) + (overallRate * priorWeight)) / Math.max(1, sampleSize + priorWeight);
+      }
+
+      function samplePoisson(lambda) {
+        const limit = Math.exp(-lambda);
+        let product = 1;
+        let count = 0;
+        while (product > limit) {
+          count += 1;
+          product *= Math.random();
+        }
+        return count - 1;
+      }
+
+      function getPlayedCountFromStats(stats) {
+        return stats ? (stats.wins + stats.draws + stats.losses) : 0;
+      }
+
+      function average(values) {
+        return values.length ? (sum(values.map((value) => ({ value })), "value") / values.length) : 0;
+      }
+
+      function percentile(sortedValues, quantile) {
+        if (!sortedValues.length) {
+          return 0;
+        }
+        const index = clamp(Math.round((sortedValues.length - 1) * quantile), 0, sortedValues.length - 1);
+        return sortedValues[index];
+      }
+
+      function waitForNextFrame() {
+        return new Promise((resolve) => {
+          window.requestAnimationFrame(() => resolve());
+        });
+      }
+
       function normalizeBundledSeason(bundleSeason) {
         if (!bundleSeason || !bundleSeason.weeks.size) {
           return null;
@@ -2464,10 +3137,123 @@
         ].forEach((button) => {
           button.disabled = disabled;
         });
+
+        renderSimulationUi();
+      }
+
+      function getRenderedSeasonData() {
+        if (state.simulation.active && state.simulation.result && state.simulation.result.displaySeasonData) {
+          return state.simulation.result.displaySeasonData;
+        }
+        return state.seasonData;
+      }
+
+      function resetSimulationState() {
+        state.simulation.running = false;
+        state.simulation.active = false;
+        state.simulation.progress = 0;
+        state.simulation.label = "";
+        state.simulation.result = null;
+        renderSimulationUi();
+      }
+
+      function renderSimulationUi() {
+        if (!els.simulateBtn) {
+          return;
+        }
+        const canSimulate = Boolean(state.seasonData) && hasRemainingFixtures(state.seasonData);
+        const isRunning = Boolean(state.simulation.running);
+        const isActive = Boolean(state.simulation.active && state.simulation.result);
+        els.simulateBtn.disabled = state.loading || isRunning || (!isActive && !canSimulate);
+        els.simulateBtn.classList.toggle("btn-primary", isActive);
+        els.simulateBtn.classList.toggle("is-active", isActive);
+        els.simulateBtn.textContent = isRunning ? "Simulating…" : (isActive ? "Simulation On" : "Simulate");
+        if (els.simulationProgress) {
+          const showProgress = isRunning;
+          els.simulationProgress.hidden = !showProgress;
+          const percent = clamp(Math.round(Number(state.simulation.progress || 0) * 100), 0, 100);
+          if (els.simulationProgressFill) {
+            els.simulationProgressFill.style.width = `${percent}%`;
+          }
+          if (els.simulationProgressLabel) {
+            els.simulationProgressLabel.textContent = showProgress
+              ? `${state.simulation.label || "Running simulation"} ${percent}%`
+              : "";
+          }
+        }
+      }
+
+      async function toggleSimulation() {
+        if (state.loading || state.simulation.running || !state.seasonData) {
+          return;
+        }
+        if (state.simulation.active) {
+          state.simulation.active = false;
+          state.highlightedTeam = null;
+          state.hoveredWeek = null;
+          state.hoveredClub = null;
+          state.hoveredFixture = null;
+          state.hoveredFixturePreview = null;
+          hideWeekTooltip();
+          hideClubTooltip();
+          hideFixturePreviewTooltip();
+          hideFixtureTooltip();
+          renderStatus();
+          renderBoard();
+          return;
+        }
+
+        if (!hasRemainingFixtures(state.seasonData)) {
+          state.messages = [{
+            type: "info",
+            text: "No unplayed fixtures remain for this season."
+          }];
+          renderStatus();
+          return;
+        }
+
+        state.simulation.running = true;
+        state.simulation.progress = 0;
+        state.simulation.label = "Running simulation";
+        renderSimulationUi();
+        state.messages = [{
+          type: "info",
+          text: "Running season projection from the current official table."
+        }];
+        renderStatus();
+
+        try {
+          const result = await runSeasonSimulation(state.seasonData, updateSimulationProgress);
+          state.simulation.result = result;
+          state.simulation.active = true;
+          state.messages = [{
+            type: "info",
+            text: `Simulation complete: ${result.runCount} runs using only unresolved fixtures.`
+          }];
+        } catch (error) {
+          state.simulation.active = false;
+          state.simulation.result = null;
+          state.messages = [{
+            type: "error",
+            text: error && error.message ? error.message : "Simulation failed."
+          }];
+        } finally {
+          state.simulation.running = false;
+          state.simulation.progress = 0;
+          state.simulation.label = "";
+          renderStatus();
+          renderBoard();
+        }
+      }
+
+      function updateSimulationProgress(progress, label) {
+        state.simulation.progress = clamp(Number(progress || 0), 0, 1);
+        state.simulation.label = label || "Running simulation";
+        renderSimulationUi();
       }
 
       function renderBoard() {
-        const seasonData = state.seasonData;
+        const seasonData = getRenderedSeasonData();
         state.hoveredWeek = null;
         state.hoveredClub = null;
         state.hoveredFixture = null;
@@ -2521,10 +3307,8 @@
 
         seasonData.finalOrder.forEach((teamAbbr, rowIndex) => {
           const team = seasonData.teamCatalog.get(teamAbbr);
-          const currentRow = seasonData.actualWeekRecord && seasonData.actualWeekRecord.teamMap
-            ? seasonData.actualWeekRecord.teamMap.get(teamAbbr)
-            : (seasonData.finalWeek && seasonData.finalWeek.teamMap ? seasonData.finalWeek.teamMap.get(teamAbbr) : null);
-          const pointsDisplay = getTeamPointsDisplay(seasonData, teamAbbr);
+          const currentRow = getDisplayedTeamReferenceRow(seasonData, teamAbbr);
+          const sideStats = getSideLabelStats(seasonData, teamAbbr);
           const guaranteedOutcome = getGuaranteedOutcome(seasonData, teamAbbr);
           const label = document.createElement("div");
           label.className = "side-label";
@@ -2541,9 +3325,9 @@
               </div>
             </div>
             <div class="side-stats">
-              <div class="side-stat"><strong>${pointsDisplay.earned} / ${pointsDisplay.possible}</strong> pts</div>
-              <div class="side-stat">GD <strong>${formatSignedNumber(currentRow ? currentRow.goalDiff : 0)}</strong></div>
-              <div class="side-stat">GS <strong>${currentRow ? currentRow.goalsFor : 0}</strong></div>
+              <div class="side-stat">${sideStats.line1}</div>
+              <div class="side-stat">${sideStats.line2}</div>
+              <div class="side-stat">${sideStats.line3}</div>
             </div>
           `;
           boardGrid.appendChild(label);
@@ -2640,6 +3424,9 @@
         sourceBits.push(`<span class="pill"><strong>Season</strong> ${escapeHtml(seasonData.label)}</span>`);
         sourceBits.push(`<span class="pill"><strong>Rows</strong> ${seasonData.teamCount}</span>`);
         sourceBits.push(`<span class="pill"><strong>Columns</strong> ${seasonData.weekCount}</span>`);
+        if (seasonData.simulationInfo && seasonData.simulationInfo.active) {
+          sourceBits.push(`<span class="pill"><strong>Simulation</strong> ${seasonData.simulationInfo.runCount} runs</span>`);
+        }
         if (state.settings.compressedMode) {
           sourceBits.push(`<span class="pill"><strong>View</strong> compressed</span>`);
         }
@@ -2720,10 +3507,11 @@
 
       function handleFixtureOpen(event) {
         const fixtureRef = resolveFixtureHoverRef(event.target);
-        if (!fixtureRef || !state.seasonData) {
+        const seasonData = getRenderedSeasonData();
+        if (!fixtureRef || !seasonData) {
           return;
         }
-        const weekRecord = state.seasonData.weekRecords[fixtureRef.week - 1];
+        const weekRecord = seasonData.weekRecords[fixtureRef.week - 1];
         const row = weekRecord && weekRecord.teamMap ? weekRecord.teamMap.get(fixtureRef.teamAbbr) : null;
         const matches = row && Array.isArray(row.fixtureMatches) ? row.fixtureMatches : [];
         if (!matches.length) {
@@ -2753,7 +3541,9 @@
           return;
         }
         hideFixtureTooltip();
+        hideFixturePreviewTooltip();
         state.hoveredFixture = null;
+        state.hoveredFixturePreview = null;
       }
 
       function handleDocumentKeydown(event) {
@@ -2761,7 +3551,9 @@
           return;
         }
         hideFixtureTooltip();
+        hideFixturePreviewTooltip();
         state.hoveredFixture = null;
+        state.hoveredFixturePreview = null;
       }
 
       function handleClubHover(event) {
@@ -2932,26 +3724,45 @@
 
       function renderFlowOverlay(flowSvg, seasonData, boardGrid) {
         flowSvg.replaceChildren();
+        const actualCutoffWeek = seasonData && seasonData.simulationInfo && seasonData.simulationInfo.active
+          ? Number(seasonData.simulationInfo.flowCutoffWeek || 0)
+          : 0;
         seasonData.teamFlows.forEach((flow) => {
-          const pathData = buildFlowPath(flow.teamAbbr, flow.points, boardGrid);
-          if (!pathData) {
+          const segments = buildFlowSegments(flow.teamAbbr, flow.points, boardGrid, actualCutoffWeek);
+          if (!segments.actual && !segments.simulated) {
             return;
           }
           const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
           group.setAttribute("class", "flow-team");
           group.dataset.team = flow.teamAbbr;
 
-          const halo = document.createElementNS("http://www.w3.org/2000/svg", "path");
-          halo.setAttribute("class", "flow-halo");
-          halo.setAttribute("d", pathData);
+          if (segments.actual) {
+            const halo = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            halo.setAttribute("class", "flow-halo");
+            halo.setAttribute("d", segments.actual);
 
-          const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-          path.setAttribute("class", "flow-path");
-          path.setAttribute("d", pathData);
-          path.setAttribute("stroke", flow.color);
+            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            path.setAttribute("class", "flow-path");
+            path.setAttribute("d", segments.actual);
+            path.setAttribute("stroke", flow.color);
 
-          group.appendChild(halo);
-          group.appendChild(path);
+            group.appendChild(halo);
+            group.appendChild(path);
+          }
+
+          if (segments.simulated) {
+            const halo = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            halo.setAttribute("class", "flow-halo");
+            halo.setAttribute("d", segments.simulated);
+
+            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            path.setAttribute("class", "flow-path simulated");
+            path.setAttribute("d", segments.simulated);
+            path.setAttribute("stroke", flow.color);
+
+            group.appendChild(halo);
+            group.appendChild(path);
+          }
           flowSvg.appendChild(group);
         });
       }
@@ -2972,24 +3783,44 @@
         });
       }
 
-      function buildFlowPath(teamAbbr, points, boardGrid) {
-        if (!points.length) {
-          return "";
+      function buildFlowSegments(teamAbbr, points, boardGrid, actualCutoffWeek) {
+        const anchors = buildFlowAnchors(teamAbbr, points, boardGrid);
+        if (!anchors.length) {
+          return { actual: "", simulated: "" };
         }
+        if (!actualCutoffWeek) {
+          return { actual: buildPathFromAnchors(anchors), simulated: "" };
+        }
+        if (actualCutoffWeek >= anchors[anchors.length - 1].week) {
+          return { actual: buildPathFromAnchors(anchors), simulated: "" };
+        }
+        const actualAnchors = anchors.filter((anchor) => anchor.week <= actualCutoffWeek);
+        const simulatedAnchors = anchors.filter((anchor) => anchor.week >= actualCutoffWeek);
+        return {
+          actual: buildPathFromAnchors(actualAnchors),
+          simulated: buildPathFromAnchors(simulatedAnchors)
+        };
+      }
+
+      function buildFlowAnchors(teamAbbr, points, boardGrid) {
         const metrics = getBoardMetrics();
         const yOffset = state.settings.compressedMode ? -(metrics.rowHeight / 2) : 0;
-        const anchors = points.map((point) => {
+        return points.map((point) => {
           const cell = boardGrid.querySelector(`.rank-cell[data-team="${teamAbbr}"][data-week="${point.week}"]`);
           if (!cell) {
             return null;
           }
           return {
+            week: point.week,
             x: cell.offsetLeft + (cell.offsetWidth / 2),
             y: cell.offsetTop + (cell.offsetHeight / 2) + yOffset,
             width: cell.offsetWidth
           };
         }).filter(Boolean);
-        if (!anchors.length) {
+      }
+
+      function buildPathFromAnchors(anchors) {
+        if (!anchors || !anchors.length) {
           return "";
         }
 
@@ -3243,10 +4074,11 @@
       }
 
       function getHoveredWeekResult(teamAbbr) {
-        if (!state.hoveredWeek || !state.seasonData) {
+        const seasonData = getRenderedSeasonData();
+        if (!state.hoveredWeek || !seasonData) {
           return "";
         }
-        const weekRecord = state.seasonData.weekRecords[state.hoveredWeek - 1];
+        const weekRecord = seasonData.weekRecords[state.hoveredWeek - 1];
         if (!weekRecord || !weekRecord.weekTeamResults) {
           return "";
         }
@@ -3254,10 +4086,11 @@
       }
 
       function showWeekTooltip(week, event) {
-        if (!state.seasonData || !els.weekTooltip) {
+        const seasonData = getRenderedSeasonData();
+        if (!seasonData || !els.weekTooltip) {
           return;
         }
-        const weekRecord = state.seasonData.weekRecords[week - 1];
+        const weekRecord = seasonData.weekRecords[week - 1];
         if (!weekRecord) {
           hideWeekTooltip();
           return;
@@ -3280,7 +4113,7 @@
       }
 
       function showClubTooltip(teamAbbr, event) {
-        if (!state.seasonData || !els.clubTooltip) {
+        if (!getRenderedSeasonData() || !els.clubTooltip) {
           return;
         }
         const tooltipHtml = buildClubTooltipHtml(teamAbbr);
@@ -3301,7 +4134,7 @@
       }
 
       function showFixturePreviewTooltip(fixtureRef, event) {
-        if (!state.seasonData || !els.fixturePreviewTooltip) {
+        if (!getRenderedSeasonData() || !els.fixturePreviewTooltip) {
           return;
         }
         const tooltipHtml = buildFixturePreviewTooltipHtml(fixtureRef);
@@ -3322,7 +4155,7 @@
       }
 
       function showFixtureTooltip(fixtureRef, anchorNode) {
-        if (!state.seasonData || !els.fixtureTooltip) {
+        if (!getRenderedSeasonData() || !els.fixtureTooltip) {
           return;
         }
         const tooltipHtml = buildFixtureTooltipHtml(fixtureRef);
@@ -3357,19 +4190,28 @@
       }
 
       function positionClubTooltip(teamAbbr, event) {
-        if (!els.clubTooltip || els.clubTooltip.hidden || !state.seasonData) {
+        const seasonData = getRenderedSeasonData();
+        if (!els.clubTooltip || els.clubTooltip.hidden || !seasonData) {
           return;
         }
         const cardRect = els.boardCard.getBoundingClientRect();
         const tooltipRect = els.clubTooltip.getBoundingClientRect();
-        const rowIndex = Math.max(0, state.seasonData.finalOrder.indexOf(teamAbbr));
-        const ratio = state.seasonData.teamCount > 1 ? (rowIndex / (state.seasonData.teamCount - 1)) : 0.5;
+        const rowIndex = Math.max(0, seasonData.finalOrder.indexOf(teamAbbr));
+        const ratio = seasonData.teamCount > 1 ? (rowIndex / (seasonData.teamCount - 1)) : 0.5;
         const desiredLeft = (event.clientX - cardRect.left) + 18;
         const desiredTop = (event.clientY - cardRect.top) + 18 - (ratio * (tooltipRect.height + 36));
-        const maxLeft = Math.max(12, cardRect.width - tooltipRect.width - 12);
-        const maxTop = Math.max(12, cardRect.height - tooltipRect.height - 12);
-        els.clubTooltip.style.left = `${clamp(desiredLeft, 12, maxLeft)}px`;
-        els.clubTooltip.style.top = `${clamp(desiredTop, 12, maxTop)}px`;
+        const minLeft = Math.max(12, 12 - cardRect.left);
+        const minTop = Math.max(12, 12 - cardRect.top);
+        const maxLeft = Math.max(minLeft, Math.min(
+          cardRect.width - tooltipRect.width - 12,
+          window.innerWidth - cardRect.left - tooltipRect.width - 12
+        ));
+        const maxTop = Math.max(minTop, Math.min(
+          cardRect.height - tooltipRect.height - 12,
+          window.innerHeight - cardRect.top - tooltipRect.height - 12
+        ));
+        els.clubTooltip.style.left = `${clamp(desiredLeft, minLeft, maxLeft)}px`;
+        els.clubTooltip.style.top = `${clamp(desiredTop, minTop, maxTop)}px`;
       }
 
       function positionFixtureTooltip(anchorNode) {
@@ -3421,7 +4263,7 @@
       }
 
       function buildClubTooltipHtml(teamAbbr) {
-        const seasonData = state.seasonData;
+        const seasonData = getRenderedSeasonData();
         if (!seasonData) {
           return "";
         }
@@ -3429,17 +4271,24 @@
         if (!team) {
           return "";
         }
-        const currentRow = seasonData.actualWeekRecord && seasonData.actualWeekRecord.teamMap
-          ? seasonData.actualWeekRecord.teamMap.get(teamAbbr)
-          : (seasonData.finalWeek && seasonData.finalWeek.teamMap ? seasonData.finalWeek.teamMap.get(teamAbbr) : null);
+        const currentRow = getDisplayedTeamReferenceRow(seasonData, teamAbbr);
         const currentPoints = currentRow ? currentRow.points : 0;
+        const summary = seasonData.simulationInfo && seasonData.simulationInfo.summaryByTeam
+          ? seasonData.simulationInfo.summaryByTeam.get(teamAbbr)
+          : null;
+        const probabilityMarkup = summary ? `
+          <div class="club-tooltip-prob-grid">
+            ${summary.positionProbabilities.map((value, index) => `
+              <div class="club-tooltip-prob"><strong>${index + 1}</strong> - ${formatPercent(value)}</div>
+            `).join("")}
+          </div>
+        ` : "";
         const fixtures = collectTeamSeasonFixtures(seasonData, teamAbbr);
         const badgeUrl = team.id ? getTeamBadgeUrl(team.id) : "";
         const fixtureMarkup = fixtures.length ? fixtures.map((fixture) => `
               <div class="club-tooltip-fixture ${escapeHtml(fixture.cssClass)}">
                 <div class="club-tooltip-fixture-main">
-                  <div class="club-tooltip-fixture-week">Week ${fixture.week}</div>
-                  <div class="club-tooltip-fixture-text">${escapeHtml(fixture.text)}</div>
+                  <div class="club-tooltip-fixture-text">${escapeHtml(`W${fixture.week} ${fixture.text}`)}</div>
                 </div>
                 <div class="club-tooltip-fixture-points">${escapeHtml(fixture.pointsText)}</div>
               </div>
@@ -3458,10 +4307,13 @@
                 <span>${escapeHtml(teamAbbr)}</span>
               </div>
               <div class="club-tooltip-record">W ${currentRow ? currentRow.wins : 0} / D ${currentRow ? currentRow.draws : 0} / L ${currentRow ? currentRow.losses : 0}</div>
+              ${summary ? `<div class="club-tooltip-record">Avg ${formatProjectedValue(summary.avgPoints)} pts · range ${summary.rangeLow}-${summary.rangeHigh}</div>` : ""}
+              ${summary ? `<div class="club-tooltip-record">Title ${formatPercent(summary.titleProbability)} · Top 4 ${formatPercent(summary.top4Probability)} · Rel ${formatPercent(summary.relegationProbability)}</div>` : ""}
             </div>
             <div class="club-tooltip-points">${currentPoints}<span>Points</span></div>
             ${badgeUrl ? `<img class="club-tooltip-badge" src="${escapeHtml(badgeUrl)}" alt="${escapeHtml(team.name || teamAbbr)} badge">` : ""}
           </div>
+          ${probabilityMarkup}
           <div class="club-tooltip-fixtures">
             ${fixtureMarkup}
           </div>
@@ -3469,7 +4321,7 @@
       }
 
       function buildFixtureTooltipHtml({ teamAbbr, week }) {
-        const seasonData = state.seasonData;
+        const seasonData = getRenderedSeasonData();
         if (!seasonData) {
           return "";
         }
@@ -3499,7 +4351,7 @@
       }
 
       function buildFixturePreviewTooltipHtml({ teamAbbr, week }) {
-        const seasonData = state.seasonData;
+        const seasonData = getRenderedSeasonData();
         if (!seasonData) {
           return "";
         }
@@ -3535,14 +4387,15 @@
         }
         const homeClass = fixture.completed ? resultOutcome(fixture.homeScore, fixture.awayScore) : "upcoming";
         const awayClass = fixture.completed ? resultOutcome(fixture.awayScore, fixture.homeScore) : "upcoming";
+        const simulatedClass = fixture.simulated ? " simulated" : "";
         const scoreText = fixture.completed && fixture.homeScore !== null && fixture.awayScore !== null
           ? `${fixture.homeScore}:${fixture.awayScore}`
           : "vs";
         return `
           <div class="week-tooltip-line">
-            <div class="week-tooltip-team home ${escapeHtml(homeClass)}">${escapeHtml(fixture.home.abbr)}</div>
+            <div class="week-tooltip-team home ${escapeHtml(homeClass)}${simulatedClass}">${escapeHtml(fixture.home.abbr)}</div>
             <div class="week-tooltip-score">${escapeHtml(scoreText)}</div>
-            <div class="week-tooltip-team away ${escapeHtml(awayClass)}">${escapeHtml(fixture.away.abbr)}</div>
+            <div class="week-tooltip-team away ${escapeHtml(awayClass)}${simulatedClass}">${escapeHtml(fixture.away.abbr)}</div>
           </div>
         `;
       }
@@ -3629,12 +4482,13 @@
           if (!row || !Array.isArray(row.fixtures)) {
             return;
           }
-          row.fixtures.forEach((fixture) => {
+          row.fixtures.forEach((fixture, index) => {
+            const fixtureMatch = Array.isArray(row.fixtureMatches) ? row.fixtureMatches[index] : null;
             const outcome = fixture && fixture.outcome ? fixture.outcome : "";
             fixtures.push({
               week: weekRecord.week,
               text: fixture && fixture.text ? fixture.text : "Fixture detail unavailable",
-              cssClass: outcome || "upcoming",
+              cssClass: `${outcome || "upcoming"}${fixtureMatch && fixtureMatch.simulated ? " simulated" : ""}`,
               pointsText: fixture && fixture.hasResult ? `${pointsForOutcome(outcome)} pts` : ""
             });
           });
@@ -3867,6 +4721,21 @@
       }
 
       function getGuaranteedOutcome(seasonData, teamAbbr) {
+        if (seasonData && seasonData.simulationInfo && seasonData.simulationInfo.active) {
+          const finalRow = seasonData.finalWeek && seasonData.finalWeek.teamMap
+            ? seasonData.finalWeek.teamMap.get(teamAbbr)
+            : null;
+          if (!finalRow) {
+            return "";
+          }
+          if (finalRow.rank === 1) {
+            return "champion";
+          }
+          if (finalRow.rank >= seasonData.teamCount - 2) {
+            return "relegated";
+          }
+          return "";
+        }
         const referenceWeek = seasonData && seasonData.actualWeekRecord && seasonData.actualWeekRecord.teamMap
           ? seasonData.actualWeekRecord
           : (seasonData && seasonData.finalWeek && seasonData.finalWeek.teamMap ? seasonData.finalWeek : null);
@@ -3930,6 +4799,55 @@
         return seasonStartYear <= 1994 ? 42 : 38;
       }
 
+      function hasRemainingFixtures(seasonData) {
+        return Boolean(seasonData && seasonData.weekRecords && seasonData.weekRecords.some((weekRecord) => (
+          Array.isArray(weekRecord.weekFixtures) && weekRecord.weekFixtures.some((fixture) => !fixture.completed)
+        )));
+      }
+
+      function getSimulationStartWeek(seasonData) {
+        if (!seasonData || !seasonData.weekRecords || !seasonData.weekRecords.length) {
+          return 1;
+        }
+        for (const weekRecord of seasonData.weekRecords) {
+          if (Array.isArray(weekRecord.weekFixtures) && weekRecord.weekFixtures.some((fixture) => !fixture.completed)) {
+            return weekRecord.week;
+          }
+        }
+        return Math.max(1, seasonData.weekCount);
+      }
+
+      function getDisplayedTeamReferenceRow(seasonData, teamAbbr) {
+        if (seasonData && seasonData.simulationInfo && seasonData.simulationInfo.active) {
+          return seasonData.finalWeek && seasonData.finalWeek.teamMap
+            ? seasonData.finalWeek.teamMap.get(teamAbbr) || null
+            : null;
+        }
+        return seasonData && seasonData.actualWeekRecord && seasonData.actualWeekRecord.teamMap
+          ? seasonData.actualWeekRecord.teamMap.get(teamAbbr) || null
+          : (seasonData && seasonData.finalWeek && seasonData.finalWeek.teamMap ? seasonData.finalWeek.teamMap.get(teamAbbr) || null : null);
+      }
+
+      function getSideLabelStats(seasonData, teamAbbr) {
+        if (seasonData && seasonData.simulationInfo && seasonData.simulationInfo.active) {
+          const currentRow = getDisplayedTeamReferenceRow(seasonData, teamAbbr);
+          if (currentRow) {
+            return {
+              line1: `<strong>${escapeHtml(String(currentRow.points))}</strong> pts`,
+              line2: `GD <strong>${escapeHtml(formatSignedNumber(currentRow.goalDiff))}</strong>`,
+              line3: `GS <strong>${escapeHtml(String(currentRow.goalsFor))}</strong>`
+            };
+          }
+        }
+        const pointsDisplay = getTeamPointsDisplay(seasonData, teamAbbr);
+        const currentRow = getDisplayedTeamReferenceRow(seasonData, teamAbbr);
+        return {
+          line1: `<strong>${pointsDisplay.earned} / ${pointsDisplay.possible}</strong> pts`,
+          line2: `GD <strong>${escapeHtml(formatSignedNumber(currentRow ? currentRow.goalDiff : 0))}</strong>`,
+          line3: `GS <strong>${escapeHtml(String(currentRow ? currentRow.goalsFor : 0))}</strong>`
+        };
+      }
+
       function hasFixtureResult(fixtures) {
         return Array.isArray(fixtures) && fixtures.some((fixture) => fixture && fixture.hasResult);
       }
@@ -3976,6 +4894,14 @@
       function formatSignedNumber(value) {
         const number = Number(value || 0);
         return number > 0 ? `+${number}` : `${number}`;
+      }
+
+      function formatProjectedValue(value) {
+        return Number(value || 0).toFixed(1);
+      }
+
+      function formatPercent(value) {
+        return `${Math.round(Number(value || 0) * 100)}%`;
       }
 
       function numberOrNull(value) {
