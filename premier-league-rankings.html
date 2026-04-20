@@ -374,6 +374,7 @@
     }
 
     .board-card {
+      position: relative;
       overflow: hidden;
       display: flex;
       flex-direction: column;
@@ -490,6 +491,210 @@
       stroke-width: 24;
     }
 
+    .week-tooltip {
+      position: absolute;
+      z-index: 45;
+      min-width: 220px;
+      max-width: min(360px, calc(100vw - 40px));
+      padding: 12px 14px;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background:
+        linear-gradient(180deg, rgba(12, 24, 31, 0.96), rgba(6, 14, 18, 0.94)),
+        rgba(7, 17, 22, 0.96);
+      box-shadow: 0 22px 44px rgba(0, 0, 0, 0.34);
+      backdrop-filter: blur(10px);
+      pointer-events: none;
+    }
+
+    .week-tooltip[hidden] {
+      display: none;
+    }
+
+    .week-tooltip-title {
+      font-size: 0.86rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .week-tooltip-list {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .week-tooltip-line {
+      font-size: 0.84rem;
+      line-height: 1.15;
+      color: var(--text);
+      white-space: nowrap;
+    }
+
+    .club-tooltip {
+      position: absolute;
+      z-index: 46;
+      width: min(460px, calc(100vw - 36px));
+      max-height: min(78vh, calc(100vh - 40px));
+      overflow: hidden;
+      padding: 14px;
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background:
+        linear-gradient(180deg, rgba(10, 20, 26, 0.98), rgba(5, 12, 16, 0.96)),
+        rgba(7, 17, 22, 0.97);
+      box-shadow: 0 24px 52px rgba(0, 0, 0, 0.42);
+      backdrop-filter: blur(12px);
+      pointer-events: none;
+      color: #fff;
+    }
+
+    .club-tooltip[hidden] {
+      display: none;
+    }
+
+    .club-tooltip-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .club-tooltip-meta {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      flex: 1 1 auto;
+    }
+
+    .club-tooltip-title {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .club-tooltip-title strong {
+      font-size: 1rem;
+      line-height: 1.1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .club-tooltip-title span {
+      color: rgba(255, 255, 255, 0.72);
+      font-size: 0.8rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .club-tooltip-record {
+      color: rgba(255, 255, 255, 0.86);
+      font-size: 0.8rem;
+      line-height: 1.1;
+    }
+
+    .club-tooltip-points {
+      flex: 0 0 auto;
+      margin: 0;
+      text-align: center;
+      color: #fff;
+      font-size: 1.5rem;
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: 0.01em;
+    }
+
+    .club-tooltip-points span {
+      display: block;
+      margin-top: 2px;
+      color: rgba(255, 255, 255, 0.72);
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .club-tooltip-badge {
+      width: 44px;
+      height: 44px;
+      flex: 0 0 auto;
+      object-fit: contain;
+      filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.35));
+    }
+
+    .club-tooltip-fixtures {
+      columns: 2 190px;
+      column-gap: 10px;
+    }
+
+    .club-tooltip-fixture {
+      break-inside: avoid;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      width: 100%;
+      margin: 0 0 6px;
+      padding: 6px 8px;
+      border-radius: 10px;
+      color: #fff;
+      font-size: 0.76rem;
+      line-height: 1.12;
+      background: #101010;
+    }
+
+    .club-tooltip-fixture.win {
+      background: #1a5b31;
+    }
+
+    .club-tooltip-fixture.loss {
+      background: #6c1d1d;
+    }
+
+    .club-tooltip-fixture.draw {
+      background: #454d55;
+    }
+
+    .club-tooltip-fixture.upcoming {
+      background: #111417;
+    }
+
+    .club-tooltip-fixture-main {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .club-tooltip-fixture-week {
+      color: rgba(255, 255, 255, 0.74);
+      font-size: 0.68rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .club-tooltip-fixture-text {
+      white-space: nowrap;
+    }
+
+    .club-tooltip-fixture-points {
+      flex: 0 0 auto;
+      color: #fff;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .club-tooltip-fixture-points:empty {
+      display: none;
+    }
+
     .board-grid {
       position: relative;
       display: grid;
@@ -557,6 +762,23 @@
       font-size: 0.84rem;
     }
 
+    .week-header.is-complete {
+      opacity: 0.46;
+    }
+
+    .week-header.is-partial {
+      background:
+        linear-gradient(180deg, rgba(243, 224, 122, 0.94), rgba(216, 196, 88, 0.9)),
+        rgba(243, 224, 122, 0.92);
+      border-color: rgba(255, 244, 170, 0.88);
+      color: #111417;
+    }
+
+    .week-header.is-partial strong,
+    .week-header.is-partial span {
+      color: #111417;
+    }
+
     .side-label {
       position: sticky;
       left: 0;
@@ -600,6 +822,27 @@
         linear-gradient(180deg, rgba(255, 186, 186, 0.26), rgba(171, 74, 74, 0.14)),
         rgb(9 27 35 / calc(var(--cell-fill-alpha) + 0.16));
       border-color: rgba(255, 186, 186, 0.24);
+    }
+
+    .side-label.week-win {
+      background:
+        linear-gradient(180deg, rgba(31, 101, 53, 0.92), rgba(19, 66, 34, 0.88)),
+        rgba(22, 78, 41, 0.9);
+      border-color: rgba(110, 196, 135, 0.34);
+    }
+
+    .side-label.week-loss {
+      background:
+        linear-gradient(180deg, rgba(120, 27, 27, 0.92), rgba(72, 18, 18, 0.88)),
+        rgba(95, 22, 22, 0.9);
+      border-color: rgba(230, 130, 130, 0.28);
+    }
+
+    .side-label.week-draw {
+      background:
+        linear-gradient(180deg, rgba(67, 74, 82, 0.9), rgba(43, 48, 54, 0.86)),
+        rgba(58, 64, 71, 0.88);
+      border-color: rgba(176, 184, 192, 0.24);
     }
 
     .team-chip {
@@ -946,6 +1189,8 @@
             </div>
           </div>
         </div>
+        <div class="week-tooltip" id="week-tooltip" hidden></div>
+        <div class="club-tooltip" id="club-tooltip" hidden></div>
       </section>
     </section>
   </div>
@@ -989,6 +1234,8 @@
         loading: false,
         boardMaximized: false,
         highlightedTeam: null,
+        hoveredWeek: null,
+        hoveredClub: null,
         pinnedTeams: new Set(),
         settings: loadSettings(),
         fetchProgress: null,
@@ -1025,7 +1272,9 @@
         boardCard: document.querySelector(".board-card"),
         boardScroll: document.querySelector(".board-scroll"),
         appShell: document.querySelector(".app-shell"),
-        maximizeBoardBtn: document.getElementById("maximize-board-btn")
+        maximizeBoardBtn: document.getElementById("maximize-board-btn"),
+        weekTooltip: document.getElementById("week-tooltip"),
+        clubTooltip: document.getElementById("club-tooltip")
       };
 
       void init();
@@ -1478,6 +1727,7 @@
 
           const matchesFrame = liveMatches || (bundleWeek ? bundleWeek.matches : null);
           const matchesSource = liveMatches ? "live matches" : (bundleWeek && bundleWeek.matches ? "bundled fallback" : null);
+          const weekMeta = buildWeekMeta(matchesFrame);
 
           if (bundleWeek && (!liveStandings || !liveMatches)) {
             bundleInfo.used = true;
@@ -1489,8 +1739,10 @@
             degradedWeeks.push(`W${week}`);
           }
           rankingRows.forEach((row) => {
+            const existingTeam = teamCatalog.get(row.team.abbr);
             teamCatalog.set(row.team.abbr, {
               abbr: row.team.abbr,
+              id: row.team.id || (existingTeam ? existingTeam.id : ""),
               name: row.team.name || row.team.shortName || row.team.abbr,
               shortName: row.team.shortName || row.team.name || row.team.abbr
             });
@@ -1501,6 +1753,9 @@
             carriedForward,
             standingsSource,
             matchesSource,
+            weekStatus: weekMeta.status,
+            weekFixtures: weekMeta.fixtures,
+            weekTeamResults: weekMeta.teamResults,
             rankingRows,
             teamMap: new Map(rankingRows.map((row) => [row.team.abbr, row]))
           });
@@ -1512,7 +1767,7 @@
 
         const teamFlows = finalOrder.map((teamAbbr) => ({
           teamAbbr,
-          team: teamCatalog.get(teamAbbr) || { abbr: teamAbbr, name: teamAbbr, shortName: teamAbbr },
+          team: teamCatalog.get(teamAbbr) || { abbr: teamAbbr, id: "", name: teamAbbr, shortName: teamAbbr },
           color: colorForTeam(teamAbbr),
           points: weekRecords.map((weekRecord) => {
             const teamWeek = weekRecord.teamMap.get(teamAbbr);
@@ -1652,12 +1907,20 @@
       }
 
       function normalizeFixtureWeekMatches(matches) {
-        const map = new Map();
+        const byTeam = new Map();
+        const fixtures = [];
         matches.forEach((match) => {
-          appendFixtureSummary(map, match.home.abbr, summarizeFixture(match, true));
-          appendFixtureSummary(map, match.away.abbr, summarizeFixture(match, false));
+          appendFixtureSummary(byTeam, match.home.abbr, summarizeFixture(match, true));
+          appendFixtureSummary(byTeam, match.away.abbr, summarizeFixture(match, false));
+          fixtures.push({
+            home: match.home,
+            away: match.away,
+            homeScore: match.homeScore,
+            awayScore: match.awayScore,
+            completed: isCompletedStatus(match.status)
+          });
         });
-        return map;
+        return { byTeam, fixtures };
       }
 
       function normalizeLegacyStandingsSnapshot(payload, week) {
@@ -1680,7 +1943,7 @@
       }
 
       function normalizeLegacyStandingsMatches(payload, week) {
-        const map = new Map();
+        const byTeam = new Map();
         const entries = payload.tables && payload.tables[0] && payload.tables[0].entries ? payload.tables[0].entries : [];
         entries.forEach((entry) => {
           const team = normalizeLegacyTeam(entry.team);
@@ -1693,9 +1956,9 @@
             return;
           }
           const isHome = normalizeLegacyTeam(lastMatch.teams[0].team).abbr === team.abbr;
-          appendFixtureSummary(map, team.abbr, summarizeLegacyFormMatch(lastMatch, isHome));
+          appendFixtureSummary(byTeam, team.abbr, summarizeLegacyFormMatch(lastMatch, isHome));
         });
-        return map;
+        return { byTeam, fixtures: [] };
       }
 
       function normalizeLiveStandings(payload) {
@@ -1706,6 +1969,7 @@
           rank: Number(entry.overall.position || index + 1),
           team: {
             abbr: entry.team.abbr,
+            id: entry.team.id || "",
             name: entry.team.name,
             shortName: entry.team.shortName || entry.team.name
           },
@@ -1721,15 +1985,25 @@
       }
 
       function normalizeLiveMatches(payload) {
-        const map = new Map();
+        const byTeam = new Map();
+        const fixtures = [];
         const matches = payload && Array.isArray(payload.data) ? payload.data : [];
         matches.forEach((match) => {
           const home = normalizeApiTeam(match.homeTeam);
           const away = normalizeApiTeam(match.awayTeam);
-          appendFixtureSummary(map, home.abbr, summarizeLiveMatch(match, true));
-          appendFixtureSummary(map, away.abbr, summarizeLiveMatch(match, false));
+          const homeScore = numberOrNull(match.homeTeam && match.homeTeam.score);
+          const awayScore = numberOrNull(match.awayTeam && match.awayTeam.score);
+          appendFixtureSummary(byTeam, home.abbr, summarizeLiveMatch(match, true));
+          appendFixtureSummary(byTeam, away.abbr, summarizeLiveMatch(match, false));
+          fixtures.push({
+            home,
+            away,
+            homeScore,
+            awayScore,
+            completed: isLiveMatchCompleted(match, homeScore, awayScore)
+          });
         });
-        return map;
+        return { byTeam, fixtures };
       }
 
       function buildRankingRowsForWeek(standingsFrame, matchesFrame, week) {
@@ -1747,8 +2021,8 @@
           goalsFor: entry.goalsFor,
           goalsAgainst: entry.goalsAgainst,
           goalDiff: entry.goalDiff,
-          fixtures: matchesFrame && matchesFrame.get(entry.team.abbr) ? matchesFrame.get(entry.team.abbr) : [],
-          title: buildCellTitle(entry, matchesFrame && matchesFrame.get(entry.team.abbr))
+          fixtures: matchesFrame && matchesFrame.byTeam && matchesFrame.byTeam.get(entry.team.abbr) ? matchesFrame.byTeam.get(entry.team.abbr) : [],
+          title: buildCellTitle(entry, matchesFrame && matchesFrame.byTeam && matchesFrame.byTeam.get(entry.team.abbr) ? matchesFrame.byTeam.get(entry.team.abbr) : [])
         }));
       }
 
@@ -1806,6 +2080,10 @@
 
       function renderBoard() {
         const seasonData = state.seasonData;
+        state.hoveredWeek = null;
+        state.hoveredClub = null;
+        hideWeekTooltip();
+        hideClubTooltip();
         if (!seasonData) {
           els.boardSummary.innerHTML = "";
           els.boardStage.innerHTML = els.emptyState ? els.emptyState.outerHTML : "";
@@ -1837,6 +2115,12 @@
           const weekRecord = seasonData.weekRecords[week - 1];
           const header = document.createElement("div");
           header.className = "week-header";
+          header.dataset.week = String(week);
+          if (weekRecord.weekStatus === "complete") {
+            header.classList.add("is-complete");
+          } else if (weekRecord.weekStatus === "partial") {
+            header.classList.add("is-partial");
+          }
           header.innerHTML = state.settings.compressedMode
             ? `<strong>${week}</strong>`
             : `<strong>Week ${week}</strong><span>${escapeHtml(weekHeaderCaption(weekRecord))}</span>`;
@@ -1858,9 +2142,9 @@
           label.dataset.team = teamAbbr;
           label.innerHTML = `
             <div class="side-main">
-              <span class="team-chip" style="background:${colorForTeam(teamAbbr)}"></span>
+              <span class="team-chip club-hover-target" style="background:${colorForTeam(teamAbbr)}"></span>
               <div class="side-meta">
-                <strong>#${rowIndex + 1} ${escapeHtml(teamAbbr)}</strong>
+                <strong class="club-hover-target">#${rowIndex + 1} ${escapeHtml(teamAbbr)}</strong>
                 <span>${escapeHtml(team ? team.name : teamAbbr)}</span>
               </div>
             </div>
@@ -1940,6 +2224,12 @@
 
         stage.addEventListener("mouseover", handleTeamHover, true);
         stage.addEventListener("mouseout", handleTeamHoverOut, true);
+        stage.addEventListener("mouseover", handleClubHover, true);
+        stage.addEventListener("mouseout", handleClubHoverOut, true);
+        stage.addEventListener("mousemove", handleClubHoverMove, true);
+        stage.addEventListener("mouseover", handleWeekHover, true);
+        stage.addEventListener("mouseout", handleWeekHoverOut, true);
+        stage.addEventListener("mousemove", handleWeekHoverMove, true);
         stage.addEventListener("click", handleTeamToggle, true);
 
         els.boardStage.replaceWith(stage);
@@ -2000,6 +2290,62 @@
         applyHighlightState();
       }
 
+      function handleClubHover(event) {
+        const team = resolveClubHoverTeamFromEvent(event.target);
+        if (!team) {
+          return;
+        }
+        state.hoveredClub = team;
+        showClubTooltip(team, event);
+      }
+
+      function handleClubHoverOut(event) {
+        const related = event.relatedTarget;
+        if (resolveClubHoverTeamFromEvent(related)) {
+          return;
+        }
+        state.hoveredClub = null;
+        hideClubTooltip();
+      }
+
+      function handleClubHoverMove(event) {
+        const team = resolveClubHoverTeamFromEvent(event.target);
+        if (!team) {
+          return;
+        }
+        state.hoveredClub = team;
+        showClubTooltip(team, event);
+      }
+
+      function handleWeekHover(event) {
+        const week = resolveWeekFromEvent(event.target);
+        if (!week) {
+          return;
+        }
+        state.hoveredWeek = week;
+        applyHighlightState();
+        showWeekTooltip(week, event);
+      }
+
+      function handleWeekHoverOut(event) {
+        const related = event.relatedTarget;
+        if (resolveWeekFromEvent(related)) {
+          return;
+        }
+        state.hoveredWeek = null;
+        hideWeekTooltip();
+        applyHighlightState();
+      }
+
+      function handleWeekHoverMove(event) {
+        const week = resolveWeekFromEvent(event.target);
+        if (!week) {
+          return;
+        }
+        state.hoveredWeek = week;
+        showWeekTooltip(week, event);
+      }
+
       function applyHighlightState() {
         const activeTeams = new Set(state.pinnedTeams);
         if (state.highlightedTeam) {
@@ -2017,6 +2363,12 @@
           }
           node.classList.toggle("active", activeTeams.has(team));
           node.classList.toggle("pinned", state.pinnedTeams.has(team));
+          if (node.classList && node.classList.contains("side-label")) {
+            const weekResult = getHoveredWeekResult(team);
+            node.classList.toggle("week-win", weekResult === "win");
+            node.classList.toggle("week-loss", weekResult === "loss");
+            node.classList.toggle("week-draw", weekResult === "draw");
+          }
         });
       }
 
@@ -2059,6 +2411,26 @@
         }
         const teamNode = target.closest(".rank-hover-target, .side-label");
         return teamNode ? teamNode.dataset.team : null;
+      }
+
+      function resolveClubHoverTeamFromEvent(target) {
+        if (!target || !target.closest) {
+          return null;
+        }
+        const hoverTarget = target.closest(".club-hover-target");
+        if (!hoverTarget) {
+          return null;
+        }
+        const teamNode = hoverTarget.closest(".side-label");
+        return teamNode ? teamNode.dataset.team : null;
+      }
+
+      function resolveWeekFromEvent(target) {
+        if (!target || !target.closest) {
+          return null;
+        }
+        const weekNode = target.closest(".week-header");
+        return weekNode ? Number(weekNode.dataset.week || 0) : null;
       }
 
       function renderFlowOverlay(flowSvg, seasonData, boardGrid) {
@@ -2141,18 +2513,21 @@
         const ownScore = numberOrNull(own.score);
         const opponentScore = numberOrNull(opponent.score);
         const prefix = isHome ? "vs" : "@";
+        const completed = isLiveMatchCompleted(match, ownScore, opponentScore);
 
         if (ownScore !== null && opponentScore !== null && match.period !== "PreMatch") {
           const marker = ownScore > opponentScore ? "+" : (ownScore < opponentScore ? "-" : "=");
           return {
             text: `${prefix} ${opponent.abbr} (${marker}${ownScore}:${opponentScore})`,
-            hasResult: true
+            hasResult: true,
+            outcome: completed ? resultOutcome(ownScore, opponentScore) : null
           };
         }
 
         return {
           text: `${prefix} ${opponent.abbr}`,
-          hasResult: false
+          hasResult: false,
+          outcome: null
         };
       }
 
@@ -2166,12 +2541,14 @@
           const marker = ownScore > opponentScore ? "+" : (ownScore < opponentScore ? "-" : "=");
           return {
             text: `${prefix} ${opponent.abbr} (${marker}${ownScore}:${opponentScore})`,
-            hasResult: true
+            hasResult: true,
+            outcome: isCompletedStatus(match.status) ? resultOutcome(ownScore, opponentScore) : null
           };
         }
         return {
           text: `${prefix} ${opponent.abbr}`,
-          hasResult: false
+          hasResult: false,
+          outcome: null
         };
       }
 
@@ -2179,7 +2556,7 @@
         const own = isHome ? match.teams[0] : match.teams[1];
         const opponent = isHome ? match.teams[1] : match.teams[0];
         if (!own || !own.team || !opponent || !opponent.team) {
-          return { text: "Fixture detail unavailable", hasResult: false };
+          return { text: "Fixture detail unavailable", hasResult: false, outcome: null };
         }
         const ownTeam = normalizeLegacyTeam(own.team);
         const opponentTeam = normalizeLegacyTeam(opponent.team);
@@ -2190,12 +2567,14 @@
           const marker = ownScore > opponentScore ? "+" : (ownScore < opponentScore ? "-" : "=");
           return {
             text: `${prefix} ${opponentTeam.abbr} (${marker}${ownScore}:${opponentScore})`,
-            hasResult: true
+            hasResult: true,
+            outcome: resultOutcome(ownScore, opponentScore)
           };
         }
         return {
           text: `${prefix} ${opponentTeam.abbr}`,
-          hasResult: false
+          hasResult: false,
+          outcome: null
         };
       }
 
@@ -2273,9 +2652,264 @@
         map.get(teamAbbr).push(summary);
       }
 
+      function buildWeekMeta(matchesFrame) {
+        const fixtures = matchesFrame && Array.isArray(matchesFrame.fixtures) ? matchesFrame.fixtures : [];
+        const completedCount = fixtures.filter((fixture) => fixture && fixture.completed).length;
+        let status = "upcoming";
+        if (fixtures.length && completedCount === fixtures.length) {
+          status = "complete";
+        } else if (completedCount > 0) {
+          status = "partial";
+        }
+        return {
+          status,
+          fixtures,
+          teamResults: summarizeWeekTeamResults(matchesFrame && matchesFrame.byTeam ? matchesFrame.byTeam : null)
+        };
+      }
+
+      function summarizeWeekTeamResults(byTeam) {
+        const results = new Map();
+        if (!byTeam) {
+          return results;
+        }
+        byTeam.forEach((fixtures, teamAbbr) => {
+          const outcomes = (fixtures || []).map((fixture) => fixture && fixture.outcome).filter(Boolean);
+          if (!outcomes.length) {
+            return;
+          }
+          const first = outcomes[0];
+          if (outcomes.every((outcome) => outcome === first)) {
+            results.set(teamAbbr, first);
+          }
+        });
+        return results;
+      }
+
+      function getHoveredWeekResult(teamAbbr) {
+        if (!state.hoveredWeek || !state.seasonData) {
+          return "";
+        }
+        const weekRecord = state.seasonData.weekRecords[state.hoveredWeek - 1];
+        if (!weekRecord || !weekRecord.weekTeamResults) {
+          return "";
+        }
+        return weekRecord.weekTeamResults.get(teamAbbr) || "";
+      }
+
+      function showWeekTooltip(week, event) {
+        if (!state.seasonData || !els.weekTooltip) {
+          return;
+        }
+        const weekRecord = state.seasonData.weekRecords[week - 1];
+        if (!weekRecord) {
+          hideWeekTooltip();
+          return;
+        }
+        const tooltipHtml = buildWeekTooltipHtml(weekRecord);
+        if (!tooltipHtml) {
+          hideWeekTooltip();
+          return;
+        }
+        els.weekTooltip.innerHTML = tooltipHtml;
+        els.weekTooltip.hidden = false;
+        positionWeekTooltip(event);
+      }
+
+      function hideWeekTooltip() {
+        if (!els.weekTooltip) {
+          return;
+        }
+        els.weekTooltip.hidden = true;
+      }
+
+      function showClubTooltip(teamAbbr, event) {
+        if (!state.seasonData || !els.clubTooltip) {
+          return;
+        }
+        const tooltipHtml = buildClubTooltipHtml(teamAbbr);
+        if (!tooltipHtml) {
+          hideClubTooltip();
+          return;
+        }
+        els.clubTooltip.innerHTML = tooltipHtml;
+        els.clubTooltip.hidden = false;
+        positionClubTooltip(teamAbbr, event);
+      }
+
+      function hideClubTooltip() {
+        if (!els.clubTooltip) {
+          return;
+        }
+        els.clubTooltip.hidden = true;
+      }
+
+      function positionWeekTooltip(event) {
+        if (!els.weekTooltip || els.weekTooltip.hidden) {
+          return;
+        }
+        const cardRect = els.boardCard.getBoundingClientRect();
+        const tooltipRect = els.weekTooltip.getBoundingClientRect();
+        const desiredLeft = (event.clientX - cardRect.left) + 14;
+        const desiredTop = (event.clientY - cardRect.top) + 18;
+        const maxLeft = Math.max(12, cardRect.width - tooltipRect.width - 12);
+        const maxTop = Math.max(12, cardRect.height - tooltipRect.height - 12);
+        els.weekTooltip.style.left = `${clamp(desiredLeft, 12, maxLeft)}px`;
+        els.weekTooltip.style.top = `${clamp(desiredTop, 12, maxTop)}px`;
+      }
+
+      function positionClubTooltip(teamAbbr, event) {
+        if (!els.clubTooltip || els.clubTooltip.hidden || !state.seasonData) {
+          return;
+        }
+        const cardRect = els.boardCard.getBoundingClientRect();
+        const tooltipRect = els.clubTooltip.getBoundingClientRect();
+        const rowIndex = Math.max(0, state.seasonData.finalOrder.indexOf(teamAbbr));
+        const ratio = state.seasonData.teamCount > 1 ? (rowIndex / (state.seasonData.teamCount - 1)) : 0.5;
+        const desiredLeft = (event.clientX - cardRect.left) + 18;
+        const desiredTop = (event.clientY - cardRect.top) + 18 - (ratio * (tooltipRect.height + 36));
+        const maxLeft = Math.max(12, cardRect.width - tooltipRect.width - 12);
+        const maxTop = Math.max(12, cardRect.height - tooltipRect.height - 12);
+        els.clubTooltip.style.left = `${clamp(desiredLeft, 12, maxLeft)}px`;
+        els.clubTooltip.style.top = `${clamp(desiredTop, 12, maxTop)}px`;
+      }
+
+      function buildWeekTooltipHtml(weekRecord) {
+        const fixtures = Array.isArray(weekRecord.weekFixtures) ? weekRecord.weekFixtures : [];
+        const title = `Week ${weekRecord.week}`;
+        if (!fixtures.length) {
+          return `
+            <div class="week-tooltip-title">${escapeHtml(title)}</div>
+            <div class="week-tooltip-list">
+              <div class="week-tooltip-line">Fixture summary unavailable</div>
+            </div>
+          `;
+        }
+        return `
+          <div class="week-tooltip-title">${escapeHtml(title)}</div>
+          <div class="week-tooltip-list">
+            ${fixtures.map((fixture) => `<div class="week-tooltip-line">${escapeHtml(formatWeekFixtureLine(fixture))}</div>`).join("")}
+          </div>
+        `;
+      }
+
+      function buildClubTooltipHtml(teamAbbr) {
+        const seasonData = state.seasonData;
+        if (!seasonData) {
+          return "";
+        }
+        const team = seasonData.teamCatalog.get(teamAbbr);
+        if (!team) {
+          return "";
+        }
+        const currentRow = seasonData.actualWeekRecord && seasonData.actualWeekRecord.teamMap
+          ? seasonData.actualWeekRecord.teamMap.get(teamAbbr)
+          : (seasonData.finalWeek && seasonData.finalWeek.teamMap ? seasonData.finalWeek.teamMap.get(teamAbbr) : null);
+        const currentPoints = currentRow ? currentRow.points : 0;
+        const fixtures = collectTeamSeasonFixtures(seasonData, teamAbbr);
+        const badgeUrl = team.id ? getTeamBadgeUrl(team.id) : "";
+        const fixtureMarkup = fixtures.length ? fixtures.map((fixture) => `
+              <div class="club-tooltip-fixture ${escapeHtml(fixture.cssClass)}">
+                <div class="club-tooltip-fixture-main">
+                  <div class="club-tooltip-fixture-week">Week ${fixture.week}</div>
+                  <div class="club-tooltip-fixture-text">${escapeHtml(fixture.text)}</div>
+                </div>
+                <div class="club-tooltip-fixture-points">${escapeHtml(fixture.pointsText)}</div>
+              </div>
+            `).join("") : `
+              <div class="club-tooltip-fixture upcoming">
+                <div class="club-tooltip-fixture-main">
+                  <div class="club-tooltip-fixture-text">Fixture list unavailable</div>
+                </div>
+              </div>
+            `;
+        return `
+          <div class="club-tooltip-head">
+            <div class="club-tooltip-meta">
+              <div class="club-tooltip-title">
+                <strong>${escapeHtml(team.name || teamAbbr)}</strong>
+                <span>${escapeHtml(teamAbbr)}</span>
+              </div>
+              <div class="club-tooltip-record">W ${currentRow ? currentRow.wins : 0} / D ${currentRow ? currentRow.draws : 0} / L ${currentRow ? currentRow.losses : 0}</div>
+            </div>
+            <div class="club-tooltip-points">${currentPoints}<span>Points</span></div>
+            ${badgeUrl ? `<img class="club-tooltip-badge" src="${escapeHtml(badgeUrl)}" alt="${escapeHtml(team.name || teamAbbr)} badge">` : ""}
+          </div>
+          <div class="club-tooltip-fixtures">
+            ${fixtureMarkup}
+          </div>
+        `;
+      }
+
+      function formatWeekFixtureLine(fixture) {
+        if (!fixture || !fixture.home || !fixture.away) {
+          return "Fixture detail unavailable";
+        }
+        if (fixture.completed && fixture.homeScore !== null && fixture.awayScore !== null) {
+          return `${fixture.home.abbr} ${fixture.homeScore}:${fixture.awayScore} ${fixture.away.abbr}`;
+        }
+        return `${fixture.home.abbr} vs ${fixture.away.abbr}`;
+      }
+
+      function collectTeamSeasonFixtures(seasonData, teamAbbr) {
+        const fixtures = [];
+        seasonData.weekRecords.forEach((weekRecord) => {
+          const row = weekRecord.teamMap.get(teamAbbr);
+          if (!row || !Array.isArray(row.fixtures)) {
+            return;
+          }
+          row.fixtures.forEach((fixture) => {
+            const outcome = fixture && fixture.outcome ? fixture.outcome : "";
+            fixtures.push({
+              week: weekRecord.week,
+              text: fixture && fixture.text ? fixture.text : "Fixture detail unavailable",
+              cssClass: outcome || "upcoming",
+              pointsText: fixture && fixture.hasResult ? `${pointsForOutcome(outcome)} pts` : ""
+            });
+          });
+        });
+        return fixtures;
+      }
+
+      function isLiveMatchCompleted(match, homeScore, awayScore) {
+        if (homeScore === null || awayScore === null) {
+          return false;
+        }
+        const completedPeriods = new Set(["FullTime", "PostMatch", "Result", "FullTimeAfterExtraTime", "Penalties"]);
+        return completedPeriods.has(String(match && match.period || ""));
+      }
+
+      function resultOutcome(ownScore, opponentScore) {
+        if (ownScore > opponentScore) {
+          return "win";
+        }
+        if (ownScore < opponentScore) {
+          return "loss";
+        }
+        return "draw";
+      }
+
+      function pointsForOutcome(outcome) {
+        if (outcome === "win") {
+          return 3;
+        }
+        if (outcome === "draw") {
+          return 1;
+        }
+        if (outcome === "loss") {
+          return 0;
+        }
+        return 0;
+      }
+
+      function getTeamBadgeUrl(teamId) {
+        return `https://resources.premierleague.com/premierleague25/badges-alt/${encodeURIComponent(String(teamId))}.svg`;
+      }
+
       function normalizeApiTeam(team) {
         return {
           abbr: team.abbr,
+          id: team.id || "",
           name: team.name,
           shortName: team.shortName || team.name
         };
@@ -2285,6 +2919,7 @@
         const club = team.club || team;
         return {
           abbr: club.abbr,
+          id: club.id || team.id || "",
           name: club.name || team.name || club.shortName || club.abbr,
           shortName: club.shortName || team.shortName || club.name || club.abbr
         };
