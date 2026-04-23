@@ -2199,10 +2199,19 @@
             ? normalizeLiveMatches(liveWeek.matches.payload)
             : null;
           const bundleWeek = bundleDerived ? bundleDerived.weeks.get(week) : null;
+          const matchesFrame = liveMatches || (bundleWeek ? bundleWeek.matches : null);
+          const matchesSource = liveMatches ? "live matches" : (bundleWeek && bundleWeek.matches ? "bundled fallback" : null);
+          const derivedStandings = previousStandings && matchesFrame
+            ? deriveStandingsFrameFromCompletedFixtures(previousStandings, matchesFrame, week)
+            : null;
 
           let standingsFrame = liveStandings || (bundleWeek ? bundleWeek.standings : null);
           let standingsSource = liveStandings ? "live standings" : (bundleWeek && bundleWeek.standings ? "bundled fallback" : null);
           let carriedForward = false;
+          if (derivedStandings && (!standingsFrame || standingsNeedCompletedFixtureReconciliation(standingsFrame, derivedStandings, matchesFrame))) {
+            standingsFrame = derivedStandings;
+            standingsSource = liveStandings ? "derived from prior table + completed fixtures" : "derived from prior table + fixture fallback";
+          }
           if (!standingsFrame && previousStandings) {
             standingsFrame = cloneStandingsFrame(previousStandings);
             standingsSource = `carry forward from week ${latestWeekWithStandings}`;
@@ -2216,8 +2225,6 @@
             }
           }
 
-          const matchesFrame = liveMatches || (bundleWeek ? bundleWeek.matches : null);
-          const matchesSource = liveMatches ? "live matches" : (bundleWeek && bundleWeek.matches ? "bundled fallback" : null);
           const weekMeta = buildWeekMeta(matchesFrame, week);
           const matchesFrameWithKeys = matchesFrame ? { ...matchesFrame, fixtures: weekMeta.fixtures } : null;
 
@@ -2979,7 +2986,7 @@
       }
 
       function normalizeLegacyStandingsSnapshot(payload, week) {
-        const table = (payload.tables && payload.tables[0] && payload.tables[0].entries ? payload.tables[0].entries : [])
+        const rawTable = (payload.tables && payload.tables[0] && payload.tables[0].entries ? payload.tables[0].entries : [])
           .map((entry, index) => {
             const team = normalizeLegacyTeam(entry.team);
             return {
@@ -2994,6 +3001,7 @@
               goalDiff: Number(entry.overall.goalsDifference || 0)
             };
           });
+        const table = sortStandingsRows(rawTable);
         return { week, table };
       }
 
@@ -3020,7 +3028,7 @@
         if (!payload || !payload.tables || !payload.tables[0] || !Array.isArray(payload.tables[0].entries)) {
           return null;
         }
-        const table = payload.tables[0].entries.map((entry, index) => ({
+        const rawTable = payload.tables[0].entries.map((entry, index) => ({
           rank: Number(entry.overall.position || index + 1),
           team: {
             abbr: entry.team.abbr,
@@ -3035,7 +3043,8 @@
           goalsFor: Number(entry.overall.goalsFor || 0),
           goalsAgainst: Number(entry.overall.goalsAgainst || 0),
           goalDiff: Number((entry.overall.goalsFor || 0) - (entry.overall.goalsAgainst || 0))
-        })).sort((left, right) => left.rank - right.rank);
+        }));
+        const table = sortStandingsRows(rawTable);
         return { week: Number(payload.matchweek || 0), table };
       }
 
@@ -3083,6 +3092,118 @@
             : [],
           title: buildCellTitle(entry, matchesFrame && matchesFrame.byTeam && matchesFrame.byTeam.get(entry.team.abbr) ? matchesFrame.byTeam.get(entry.team.abbr) : [])
         }));
+      }
+
+      function sortStandingsRows(rows) {
+        return [...(rows || [])].sort((left, right) => {
+          if (right.points !== left.points) return right.points - left.points;
+          if (right.goalDiff !== left.goalDiff) return right.goalDiff - left.goalDiff;
+          if (right.goalsFor !== left.goalsFor) return right.goalsFor - left.goalsFor;
+          return left.team.abbr.localeCompare(right.team.abbr);
+        }).map((entry, index) => ({
+          ...entry,
+          rank: index + 1
+        }));
+      }
+
+      function deriveStandingsFrameFromCompletedFixtures(previousStandings, matchesFrame, week) {
+        if (!previousStandings || !matchesFrame || !Array.isArray(matchesFrame.fixtures)) {
+          return null;
+        }
+        const statsMap = new Map((previousStandings.table || []).map((entry) => [entry.team.abbr, {
+          rank: entry.rank,
+          team: { ...entry.team },
+          points: entry.points,
+          wins: entry.wins,
+          draws: entry.draws,
+          losses: entry.losses,
+          goalsFor: entry.goalsFor,
+          goalsAgainst: entry.goalsAgainst,
+          goalDiff: entry.goalDiff
+        }]));
+        let appliedAny = false;
+        matchesFrame.fixtures.forEach((fixture) => {
+          if (!fixture || !fixture.completed || fixture.homeScore === null || fixture.awayScore === null) {
+            return;
+          }
+          const homeEntry = statsMap.get(fixture.home.abbr);
+          const awayEntry = statsMap.get(fixture.away.abbr);
+          if (!homeEntry || !awayEntry) {
+            return;
+          }
+          applyFixtureToStandingsEntry(homeEntry, awayEntry, fixture.homeScore, fixture.awayScore);
+          appliedAny = true;
+        });
+        if (!appliedAny) {
+          return null;
+        }
+        return {
+          week,
+          table: sortStandingsRows([...statsMap.values()])
+        };
+      }
+
+      function standingsNeedCompletedFixtureReconciliation(currentStandings, derivedStandings, matchesFrame) {
+        if (!currentStandings || !derivedStandings || !matchesFrame || !Array.isArray(matchesFrame.fixtures)) {
+          return false;
+        }
+        const affectedTeams = new Set();
+        matchesFrame.fixtures.forEach((fixture) => {
+          if (!fixture || !fixture.completed) {
+            return;
+          }
+          if (fixture.home && fixture.home.abbr) {
+            affectedTeams.add(fixture.home.abbr);
+          }
+          if (fixture.away && fixture.away.abbr) {
+            affectedTeams.add(fixture.away.abbr);
+          }
+        });
+        if (!affectedTeams.size) {
+          return false;
+        }
+        const currentMap = new Map((currentStandings.table || []).map((entry) => [entry.team.abbr, entry]));
+        const derivedMap = new Map((derivedStandings.table || []).map((entry) => [entry.team.abbr, entry]));
+        for (const teamAbbr of affectedTeams) {
+          const current = currentMap.get(teamAbbr);
+          const derived = derivedMap.get(teamAbbr);
+          if (!current || !derived) {
+            continue;
+          }
+          if (current.points !== derived.points) return true;
+          if (current.goalDiff !== derived.goalDiff) return true;
+          if (current.goalsFor !== derived.goalsFor) return true;
+          if (current.wins !== derived.wins) return true;
+          if (current.draws !== derived.draws) return true;
+          if (current.losses !== derived.losses) return true;
+        }
+        return false;
+      }
+
+      function applyFixtureToStandingsEntry(homeEntry, awayEntry, homeScore, awayScore) {
+        homeEntry.goalsFor += homeScore;
+        homeEntry.goalsAgainst += awayScore;
+        homeEntry.goalDiff = homeEntry.goalsFor - homeEntry.goalsAgainst;
+        awayEntry.goalsFor += awayScore;
+        awayEntry.goalsAgainst += homeScore;
+        awayEntry.goalDiff = awayEntry.goalsFor - awayEntry.goalsAgainst;
+
+        if (homeScore > awayScore) {
+          homeEntry.wins += 1;
+          homeEntry.points += 3;
+          awayEntry.losses += 1;
+          return;
+        }
+        if (homeScore < awayScore) {
+          awayEntry.wins += 1;
+          awayEntry.points += 3;
+          homeEntry.losses += 1;
+          return;
+        }
+        homeEntry.draws += 1;
+        awayEntry.draws += 1;
+        homeEntry.points += 1;
+        awayEntry.points += 1;
       }
 
       function buildCellTitle(entry, fixtures) {
